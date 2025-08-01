@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+pydantic
+python-multipart
+Pillow
+numpy
+minio
+boto3
+python-dotenv
+aiofiles

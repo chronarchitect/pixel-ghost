@@ -1,6 +1,6 @@
 from fastapi import APIRouter, UploadFile, File, Form
 from fastapi.responses import JSONResponse, FileResponse
-from steganography.base import SteganographyBase
+from steganography.lsb import LSB
 import shutil
 import uuid
 
@@ -19,7 +19,7 @@ async def encode_image(
     message: str = Form(...),
 ):
     """Encode a hidden message into an image using LSB steganography."""
-    steg = SteganographyBase()
+    steg = LSB()
     input_path = f"/tmp/input_{uuid.uuid4()}.png"
     output_path = f"/tmp/output_{uuid.uuid4()}.png"
 
@@ -47,7 +47,7 @@ async def decode_image(
     image: UploadFile = File(...),
 ):
     """Decode and extract a hidden message from an encoded image."""
-    steg = SteganographyBase()
+    steg = LSB()
     input_path = f"/tmp/input_{uuid.uuid4()}.png"
 
     try:

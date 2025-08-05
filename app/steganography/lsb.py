@@ -42,23 +42,22 @@ Least Significant Bit (LSB) steganography implementation.
         encoded_image.save(output_path)
 
     def decode(self, image_path):
-        """Decode the hidden message from an image."""
+        """Efficiently decode an LSB hidden message from an image using NumPy."""
         image = Image.open(image_path)
-        pixels = list(image.getdata())
+        image_array = np.array(image)
 
-        binary_data = ''
-        for pixel in pixels:
-            for channel in pixel[:3]:
-                binary_data += str(channel & 1)
+        flat_pixels = image_array.flatten()
 
-        message = ''
-        for i in range(0, len(binary_data), 8):
-            byte = binary_data[i:i+8]
-            char = chr(int(byte, 2))
-            message += char
-            if message.endswith('###'):
-                break
-        if not message.endswith('###'):
+        # Extract the LSBs
+        lsb_array = flat_pixels & 1
+        binary_data = ''.join(map(str, lsb_array.tolist()))
+
+        # Convert every 8 bits to a character
+        chars = [chr(int(binary_data[i:i+8], 2)) for i in range(0, len(binary_data), 8)]
+        message = ''.join(chars)
+
+        end_idx = message.find('###')
+        if end_idx == -1:
             return "No hidden message found or message is incomplete."
 
-        return message[:-3]
+        return message[:end_idx]

@@ -2,6 +2,7 @@ from fastapi import APIRouter, UploadFile, File, Form
 from fastapi.responses import JSONResponse, FileResponse
 from steganography.lsb import LSB
 from steganography.dct import DCT
+from steganography.lsb_random import LSBRandom
 import shutil
 import uuid
 
@@ -127,6 +128,65 @@ async def dct_decode_image(
             path=output_path,
             filename="extracted_image.png",
             media_type="image/png"
+        )
+
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+
+    finally:
+        image.file.close()
+
+
+@router.post("/lsb_random/encode")
+async def lsb_random_encode_image(
+    image: UploadFile = File(...),
+    message: str = Form(...),
+    key: str = Form(...),
+):
+    """Encode a hidden message into an image using LSB steganography with randomized pixel selection."""
+    steg = LSBRandom(key=key)
+    input_path = f"/tmp/input_{uuid.uuid4()}.png"
+    output_path = f"/tmp/output_{uuid.uuid4()}.png"
+
+    try:
+        with open(input_path, "wb") as buffer:
+            shutil.copyfileobj(image.file, buffer)
+
+        steg.encode(input_path, message, output_path)
+
+        return FileResponse(
+            path=output_path,
+            filename="encoded_image.png",
+            media_type="image/png"
+        )
+
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+
+    finally:
+        image.file.close()
+
+
+@router.post("/lsb_random/decode")
+async def lsb_random_decode_image(
+    image: UploadFile = File(...),
+    key: str = Form(...),
+):
+    """Decode and extract a hidden message from an encoded image using LSB steganography with randomized pixel selection."""
+    steg = LSBRandom(key=key)
+    input_path = f"/tmp/input_{uuid.uuid4()}.png"
+
+    try:
+        # Save uploaded file to temp path
+        with open(input_path, "wb") as buffer:
+            shutil.copyfileobj(image.file, buffer)
+
+        # Decode message
+        decoded_message = steg.decode(input_path)
+
+        return JSONResponse(
+            content={"message": decoded_message},
+            status_code=200
         )
 
     except Exception as e:

@@ -17,24 +17,47 @@ class LSBRandom(SteganographyBase):
         super().__init__()
         self.key = key
 
-    def generate_pixel_positions(self, key, max_pixels, num_positions):
-        """Generate pseudorandom unique pixel positions using a key."""
+    def generate_pixel_positions(
+        self, key, max_pixels, num_positions, exclude_positions=None
+    ):
+        """
+        Generate pseudorandom unique pixel positions using a key.
+
+        Args:
+            key: The key to use for random seed
+            max_pixels: Maximum number of pixels available
+            num_positions: Number of positions to generate
+            exclude_positions: List of positions to exclude (to avoid overlap)
+
+        Returns:
+            List of unique pixel positions
+        """
         # Create a seed from the key using SHA-256
         seed = int(hashlib.sha256(key.encode()).hexdigest(), 16)
         random.seed(seed)
 
-        # Generate unique positions
-        positions = random.sample(range(max_pixels), num_positions)
+        if exclude_positions:
+            # Create a set of available positions excluding the ones we want to avoid
+            available_positions = set(range(max_pixels)) - set(exclude_positions)
+            if len(available_positions) < num_positions:
+                raise ValueError("Not enough available positions after exclusion")
+
+            # Convert back to list and sample from it
+            positions = random.sample(list(available_positions), num_positions)
+        else:
+            # If no positions to exclude, sample directly from the range
+            positions = random.sample(range(max_pixels), num_positions)
+
         return positions
 
     def to_bin(self, data):
         """Convert data to binary format as string."""
         if isinstance(data, str):
-            return ''.join(format(ord(i), '08b') for i in data)
+            return "".join(format(ord(i), "08b") for i in data)
         elif isinstance(data, bytes) or isinstance(data, bytearray):
-            return ''.join(format(i, '08b') for i in data)
+            return "".join(format(i, "08b") for i in data)
         elif isinstance(data, int):
-            return format(data, '08b')
+            return format(data, "08b")
         else:
             raise TypeError("Unsupported data type.")
 
@@ -61,12 +84,16 @@ class LSBRandom(SteganographyBase):
         if datalen > flat_pixels.size:
             raise ValueError("Message is too long to encode in the image.")
 
-        # Generate pseudorandom pixel positions
-        pixel_positions = self.generate_pixel_positions(self.key, flat_pixels.size, datalen)
+        # First, generate positions for the length (32 bits)
+        length_binary = format(datalen, "032b")  # 32 bits for length
+        length_positions = self.generate_pixel_positions(
+            self.key + "_length", flat_pixels.size, 32
+        )
 
-        # Store the message length at the beginning for decoding
-        length_binary = format(datalen, '032b')  # 32 bits for length
-        length_positions = self.generate_pixel_positions(self.key + "_length", flat_pixels.size, 32)
+        # Then generate positions for the message, excluding the length positions
+        pixel_positions = self.generate_pixel_positions(
+            self.key, flat_pixels.size, datalen, exclude_positions=length_positions
+        )
 
         # Embed message length
         for i, pos in enumerate(length_positions):
@@ -111,29 +138,40 @@ class LSBRandom(SteganographyBase):
 
         try:
             # First, extract the length
-            length_positions = self.generate_pixel_positions(self.key + "_length", flat_pixels.size, 32)
-            length_binary = ''
+            length_positions = self.generate_pixel_positions(
+                self.key + "_length", flat_pixels.size, 32
+            )
+            length_binary = ""
             for pos in length_positions:
                 length_binary += str(flat_pixels[pos] & 1)
             datalen = int(length_binary, 2)
 
             # Validate the extracted length
             if datalen <= 0 or datalen > flat_pixels.size:
-                raise RuntimeError("Invalid message length extracted")
+                raise RuntimeError(
+                    "Invalid message length detected. This is usually because one or more of the following:\n"
+                    "1. The key is incorrect\n"
+                    "2. The image has been modified\n"
+                    "3. The image does not contain a hidden message"
+                )
 
         except ValueError as e:
-            raise RuntimeError(f"Error extracting message length: {str(e)}. The key might be incorrect.")
+            raise RuntimeError(f"Failed to extract message length: {str(e)}")
         except Exception as e:
-            raise RuntimeError(f"Unexpected error while decoding: {str(e)}. The key might be incorrect.")
+            raise RuntimeError(f"Unexpected error while decoding: {str(e)}")
 
-        # Generate pixel positions for message extraction
-        pixel_positions = self.generate_pixel_positions(self.key, flat_pixels.size, datalen)
+        # Generate pixel positions for message extraction, excluding length positions
+        pixel_positions = self.generate_pixel_positions(
+            self.key, flat_pixels.size, datalen, exclude_positions=length_positions
+        )
 
         # Extract LSBs from the selected positions
-        binary_data = ''
+        binary_data = ""
         for pos in pixel_positions:
             binary_data += str(flat_pixels[pos] & 1)
 
         # Convert every 8 bits to a character
-        chars = [chr(int(binary_data[i:i+8], 2)) for i in range(0, len(binary_data), 8)]
-        return ''.join(chars)
+        chars = [
+            chr(int(binary_data[i : i + 8], 2)) for i in range(0, len(binary_data), 8)
+        ]
+        return "".join(chars)

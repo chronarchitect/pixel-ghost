@@ -1,6 +1,3 @@
-from PIL import Image
-
-
 class SteganographyBase:
     """
     Base class for steganography operations.

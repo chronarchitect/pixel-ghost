@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse, FileResponse
 from steganography.lsb import LSB
 from steganography.dct import DCT
 from steganography.lsb_random import LSBRandom
+from steganography.lsb_random_enc import LSBRandomEnc
 import shutil
 import uuid
 
@@ -32,9 +33,7 @@ async def encode_image(
         steg.encode(input_path, message, output_path)
 
         return FileResponse(
-            path=output_path,
-            filename="encoded_image.png",
-            media_type="image/png"
+            path=output_path, filename="encoded_image.png", media_type="image/png"
         )
 
     except Exception as e:
@@ -60,10 +59,7 @@ async def decode_image(
         # Decode message
         decoded_message = steg.decode(input_path)
 
-        return JSONResponse(
-            content={"message": decoded_message},
-            status_code=200
-        )
+        return JSONResponse(content={"message": decoded_message}, status_code=200)
 
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)
@@ -94,9 +90,7 @@ async def dct_encode_image(
         steg.encode(cover_path, secret_path, output_path)
 
         return FileResponse(
-            path=output_path,
-            filename="encoded_image.png",
-            media_type="image/png"
+            path=output_path, filename="encoded_image.png", media_type="image/png"
         )
 
     except Exception as e:
@@ -125,9 +119,7 @@ async def dct_decode_image(
         steg.decode(input_path, output_path)
 
         return FileResponse(
-            path=output_path,
-            filename="extracted_image.png",
-            media_type="image/png"
+            path=output_path, filename="extracted_image.png", media_type="image/png"
         )
 
     except Exception as e:
@@ -155,9 +147,7 @@ async def lsb_random_encode_image(
         steg.encode(input_path, message, output_path)
 
         return FileResponse(
-            path=output_path,
-            filename="encoded_image.png",
-            media_type="image/png"
+            path=output_path, filename="encoded_image.png", media_type="image/png"
         )
 
     except Exception as e:
@@ -184,10 +174,61 @@ async def lsb_random_decode_image(
         # Decode message
         decoded_message = steg.decode(input_path)
 
-        return JSONResponse(
-            content={"message": decoded_message},
-            status_code=200
+        return JSONResponse(content={"message": decoded_message}, status_code=200)
+
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+
+    finally:
+        image.file.close()
+
+
+@router.post("/lsb_random_enc/encode")
+async def lsb_random_enc_encode_image(
+    image: UploadFile = File(...),
+    message: str = Form(...),
+    key: str = Form(...),
+):
+    """Encode and encrypt a hidden message into an image using LSB steganography with randomized pixel selection."""
+    steg = LSBRandomEnc(key=key)
+    input_path = f"/tmp/input_{uuid.uuid4()}.png"
+    output_path = f"/tmp/output_{uuid.uuid4()}.png"
+
+    try:
+        with open(input_path, "wb") as buffer:
+            shutil.copyfileobj(image.file, buffer)
+
+        steg.encode(input_path, message, output_path)
+
+        return FileResponse(
+            path=output_path, filename="encoded_image.png", media_type="image/png"
         )
+
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+
+    finally:
+        image.file.close()
+
+
+@router.post("/lsb_random_enc/decode")
+async def lsb_random_enc_decode_image(
+    image: UploadFile = File(...),
+    key: str = Form(...),
+):
+    """Decode and decrypt a hidden message from an encoded image using LSB steganography with randomized pixel selection."""
+    steg = LSBRandomEnc(key=key)
+    input_path = f"/tmp/input_{uuid.uuid4()}.png"
+
+    try:
+        # Save uploaded file to temp path
+        with open(input_path, "wb") as buffer:
+            shutil.copyfileobj(image.file, buffer)
+
+        # Decode and decrypt message
+        decoded_message = steg.decode(input_path)
+
+        return JSONResponse(content={"message": decoded_message}, status_code=200)
 
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)

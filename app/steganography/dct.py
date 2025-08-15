@@ -25,8 +25,8 @@ class DCT(SteganographyBase):
         Uses 2 bytes each for height and width (allows dimensions up to 65535).
         """
         # Convert dimensions to bytes
-        height_bytes = height.to_bytes(2, byteorder='big')
-        width_bytes = width.to_bytes(2, byteorder='big')
+        height_bytes = height.to_bytes(2, byteorder="big")
+        width_bytes = width.to_bytes(2, byteorder="big")
 
         # Store in the reserved metadata block (first 8x8 block)
         # This block won't be processed by DCT
@@ -56,8 +56,8 @@ class DCT(SteganographyBase):
             width_bytes = bytes([img[0, 2], img[0, 3]])
 
         # Convert bytes back to integers
-        height = int.from_bytes(height_bytes, byteorder='big')
-        width = int.from_bytes(width_bytes, byteorder='big')
+        height = int.from_bytes(height_bytes, byteorder="big")
+        width = int.from_bytes(width_bytes, byteorder="big")
         return height, width
 
     def prepare_image(self, image_path, target_size=None):
@@ -114,7 +114,7 @@ class DCT(SteganographyBase):
                     break
 
                 # Get 8x8 block and apply DCT
-                block = cover_channel[i:i+8, j:j+8].astype(float)
+                block = cover_channel[i : i + 8, j : j + 8].astype(float)
                 dct_block = cv2.dct(block)
 
                 # Embed one bit of secret data
@@ -124,7 +124,7 @@ class DCT(SteganographyBase):
 
                 # Inverse DCT and update stego image
                 idct_block = cv2.idct(dct_block)
-                stego_channel[i:i+8, j:j+8] = np.clip(idct_block, 0, 255)
+                stego_channel[i : i + 8, j : j + 8] = np.clip(idct_block, 0, 255)
 
         return bit_count
 
@@ -151,7 +151,7 @@ class DCT(SteganographyBase):
                     break
 
                 # Get 8x8 block and apply DCT
-                block = stego_channel[i:i+8, j:j+8].astype(float)
+                block = stego_channel[i : i + 8, j : j + 8].astype(float)
                 dct_block = cv2.dct(block)
 
                 # Extract one bit
@@ -167,7 +167,9 @@ class DCT(SteganographyBase):
 
         # Get metadata area size and calculate available blocks
         meta_blocks_h, meta_blocks_w = self.get_metadata_area()
-        available_blocks = ((cover_img.shape[0] // 8) * (cover_img.shape[1] // 8)) - (meta_blocks_h * meta_blocks_w)
+        available_blocks = ((cover_img.shape[0] // 8) * (cover_img.shape[1] // 8)) - (
+            meta_blocks_h * meta_blocks_w
+        )
 
         # Calculate maximum secret image size that can fit
         max_bits_per_channel = available_blocks
@@ -208,14 +210,22 @@ class DCT(SteganographyBase):
 
         # Calculate capacity for embedding
         if cover_is_gray:
-            cover_blocks = ((cover_img.shape[0] // 8) * (cover_img.shape[1] // 8))
+            cover_blocks = (cover_img.shape[0] // 8) * (cover_img.shape[1] // 8)
             required_bits = secret_img.shape[0] * secret_img.shape[1] * 8
         else:
-            cover_blocks = ((cover_img.shape[0] // 8) * (cover_img.shape[1] // 8)) * 3  # 3 color channels
-            required_bits = secret_img.shape[0] * secret_img.shape[1] * (24 if not secret_is_gray else 8)
-        
+            cover_blocks = (
+                (cover_img.shape[0] // 8) * (cover_img.shape[1] // 8)
+            ) * 3  # 3 color channels
+            required_bits = (
+                secret_img.shape[0]
+                * secret_img.shape[1]
+                * (24 if not secret_is_gray else 8)
+            )
+
         if required_bits > cover_blocks:
-            raise ValueError(f"Cover image too small. Can only embed {cover_blocks} bits but need {required_bits} bits.")
+            raise ValueError(
+                f"Cover image too small. Can only embed {cover_blocks} bits but need {required_bits} bits."
+            )
 
         # Initialize stego image by copying the cover image
         stego_img = cover_img.copy()
@@ -235,16 +245,26 @@ class DCT(SteganographyBase):
 
                 for channel in range(3):
                     start_idx = channel * bits_per_channel
-                    end_idx = start_idx + bits_per_channel if channel < 2 else len(secret_binary)
+                    end_idx = (
+                        start_idx + bits_per_channel
+                        if channel < 2
+                        else len(secret_binary)
+                    )
                     channel_bits = secret_binary[start_idx:end_idx]
-                    self.embed_channel(cover_img[..., channel], channel_bits, stego_img[..., channel])
+                    self.embed_channel(
+                        cover_img[..., channel], channel_bits, stego_img[..., channel]
+                    )
                 bit_count = len(secret_binary)
             else:
                 # For color secret in color cover, embed each channel separately
                 total_bits = 0
                 for channel in range(3):
-                    secret_binary = np.unpackbits(secret_img[..., channel].astype(np.uint8))
-                    bits = self.embed_channel(cover_img[..., channel], secret_binary, stego_img[..., channel])
+                    secret_binary = np.unpackbits(
+                        secret_img[..., channel].astype(np.uint8)
+                    )
+                    bits = self.embed_channel(
+                        cover_img[..., channel], secret_binary, stego_img[..., channel]
+                    )
                     total_bits += bits
                 bit_count = total_bits
 
@@ -272,13 +292,21 @@ class DCT(SteganographyBase):
             # Extract from each channel
             extracted_image = np.zeros((secret_height, secret_width, 3), dtype=np.uint8)
             for channel in range(3):
-                extracted_bits = self.extract_channel(stego_img[..., channel], bits_per_channel)
+                extracted_bits = self.extract_channel(
+                    stego_img[..., channel], bits_per_channel
+                )
                 if len(extracted_bits) < bits_per_channel:
-                    raise ValueError(f"Not enough bits extracted from channel {channel}")
+                    raise ValueError(
+                        f"Not enough bits extracted from channel {channel}"
+                    )
 
                 # Convert bits to channel data
-                channel_data = np.packbits(extracted_bits)[:secret_height*secret_width]
-                extracted_image[..., channel] = channel_data.reshape(secret_height, secret_width)
+                channel_data = np.packbits(extracted_bits)[
+                    : secret_height * secret_width
+                ]
+                extracted_image[..., channel] = channel_data.reshape(
+                    secret_height, secret_width
+                )
         else:
             # Extract from grayscale image
             extracted_bits = self.extract_channel(stego_img, total_bits)
@@ -286,7 +314,7 @@ class DCT(SteganographyBase):
                 raise ValueError("Not enough bits extracted")
 
             # Convert bits to image
-            image_data = np.packbits(extracted_bits)[:secret_height*secret_width]
+            image_data = np.packbits(extracted_bits)[: secret_height * secret_width]
             extracted_image = image_data.reshape(secret_height, secret_width)
 
         # Save extracted image

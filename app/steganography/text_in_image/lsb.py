@@ -1,6 +1,6 @@
 from PIL import Image
 import numpy as np
-from steganography.base import SteganographyBase
+from ..base import SteganographyBase
 
 
 class LSB(SteganographyBase):

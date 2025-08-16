@@ -1,9 +1,12 @@
 from fastapi import APIRouter, UploadFile, File, Form
 from fastapi.responses import JSONResponse, FileResponse
-from steganography.lsb import LSB
-from steganography.dct import DCT
-from steganography.lsb_random import LSBRandom
-from steganography.lsb_random_enc import LSBRandomEnc
+from steganography.text_in_image.lsb import LSB
+from steganography.image_in_image.dct import DCT
+from steganography.text_in_image.lsb_random import LSBRandom
+from steganography.text_in_image.lsb_random_enc import LSBRandomEnc
+from steganography.image_in_image.lsb import ImageInImageLSB
+from steganography.image_in_image.lsb_random import ImageInImageLSBRandom
+from steganography.image_in_image.lsb_random_enc import ImageInImageLSBRandomEnc
 import shutil
 import uuid
 
@@ -16,12 +19,12 @@ async def read_root():
     return {"message": "PixelGhost backend is alive!"}
 
 
-@router.post("/lsb/encode")
-async def encode_image(
+@router.post("/text/lsb/encode")
+async def encode_text_in_image(
     image: UploadFile = File(...),
     message: str = Form(...),
 ):
-    """Encode a hidden message into an image using LSB steganography."""
+    """Encode a hidden text message into an image using LSB steganography."""
     steg = LSB()
     input_path = f"/tmp/input_{uuid.uuid4()}.png"
     output_path = f"/tmp/output_{uuid.uuid4()}.png"
@@ -43,11 +46,11 @@ async def encode_image(
         image.file.close()
 
 
-@router.post("/lsb/decode")
-async def decode_image(
+@router.post("/text/lsb/decode")
+async def decode_text_from_image(
     image: UploadFile = File(...),
 ):
-    """Decode and extract a hidden message from an encoded image."""
+    """Decode and extract a hidden text message from an encoded image."""
     steg = LSB()
     input_path = f"/tmp/input_{uuid.uuid4()}.png"
 
@@ -68,7 +71,305 @@ async def decode_image(
         image.file.close()
 
 
-@router.post("/dct/encode")
+@router.post("/text/lsb_random/encode")
+async def lsb_random_encode_text_in_image(
+    image: UploadFile = File(...),
+    message: str = Form(...),
+    key: str = Form(...),
+):
+    """Encode a hidden text message into an image using LSB steganography with randomized pixel selection."""
+    steg = LSBRandom(key=key)
+    input_path = f"/tmp/input_{uuid.uuid4()}.png"
+    output_path = f"/tmp/output_{uuid.uuid4()}.png"
+
+    try:
+        with open(input_path, "wb") as buffer:
+            shutil.copyfileobj(image.file, buffer)
+
+        steg.encode(input_path, message, output_path)
+
+        return FileResponse(
+            path=output_path, filename="encoded_image.png", media_type="image/png"
+        )
+
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+
+    finally:
+        image.file.close()
+
+
+@router.post("/text/lsb_random/decode")
+async def lsb_random_decode_text_from_image(
+    image: UploadFile = File(...),
+    key: str = Form(...),
+):
+    """Decode and extract a hidden text message from an encoded image using LSB steganography with randomized pixel selection."""
+    steg = LSBRandom(key=key)
+    input_path = f"/tmp/input_{uuid.uuid4()}.png"
+
+    try:
+        # Save uploaded file to temp path
+        with open(input_path, "wb") as buffer:
+            shutil.copyfileobj(image.file, buffer)
+
+        # Decode message
+        decoded_message = steg.decode(input_path)
+
+        return JSONResponse(content={"message": decoded_message}, status_code=200)
+
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+
+    finally:
+        image.file.close()
+
+
+@router.post("/text/lsb_random_enc/encode")
+async def lsb_random_enc_encode_text_in_image(
+    image: UploadFile = File(...),
+    message: str = Form(...),
+    key: str = Form(...),
+):
+    """Encode and encrypt a hidden text message into an image using LSB steganography with randomized pixel selection."""
+    steg = LSBRandomEnc(key=key)
+    input_path = f"/tmp/input_{uuid.uuid4()}.png"
+    output_path = f"/tmp/output_{uuid.uuid4()}.png"
+
+    try:
+        with open(input_path, "wb") as buffer:
+            shutil.copyfileobj(image.file, buffer)
+
+        steg.encode(input_path, message, output_path)
+
+        return FileResponse(
+            path=output_path, filename="encoded_image.png", media_type="image/png"
+        )
+
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+
+    finally:
+        image.file.close()
+
+
+@router.post("/text/lsb_random_enc/decode")
+async def lsb_random_enc_decode_text_from_image(
+    image: UploadFile = File(...),
+    key: str = Form(...),
+):
+    """Decode and decrypt a hidden text message from an encoded image using LSB steganography with randomized pixel selection."""
+    steg = LSBRandomEnc(key=key)
+    input_path = f"/tmp/input_{uuid.uuid4()}.png"
+
+    try:
+        # Save uploaded file to temp path
+        with open(input_path, "wb") as buffer:
+            shutil.copyfileobj(image.file, buffer)
+
+        # Decode and decrypt message
+        decoded_message = steg.decode(input_path)
+
+        return JSONResponse(content={"message": decoded_message}, status_code=200)
+
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+
+    finally:
+        image.file.close()
+
+
+# Image-in-Image Steganography Endpoints
+
+
+@router.post("/image/lsb/encode")
+async def encode_image_in_image(
+    cover_image: UploadFile = File(...),
+    secret_image: UploadFile = File(...),
+):
+    """Encode a secret image into a cover image using basic LSB steganography."""
+    steg = ImageInImageLSB()
+    cover_path = f"/tmp/cover_{uuid.uuid4()}.png"
+    secret_path = f"/tmp/secret_{uuid.uuid4()}.png"
+    output_path = f"/tmp/output_{uuid.uuid4()}.png"
+
+    try:
+        # Save uploaded files to temp paths
+        with open(cover_path, "wb") as buffer:
+            shutil.copyfileobj(cover_image.file, buffer)
+        with open(secret_path, "wb") as buffer:
+            shutil.copyfileobj(secret_image.file, buffer)
+
+        # Encode secret image into cover image
+        steg.encode(cover_path, secret_path, output_path)
+
+        return FileResponse(
+            path=output_path, filename="encoded_image.png", media_type="image/png"
+        )
+
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+
+    finally:
+        cover_image.file.close()
+        secret_image.file.close()
+
+
+@router.post("/image/lsb/decode")
+async def decode_image_from_image(
+    stego_image: UploadFile = File(...),
+):
+    """Decode and extract a hidden image from a stego image using basic LSB steganography."""
+    steg = ImageInImageLSB()
+    input_path = f"/tmp/input_{uuid.uuid4()}.png"
+    output_path = f"/tmp/extracted_{uuid.uuid4()}.png"
+
+    try:
+        # Save uploaded file to temp path
+        with open(input_path, "wb") as buffer:
+            shutil.copyfileobj(stego_image.file, buffer)
+
+        # Decode hidden image
+        extracted_path = steg.decode(input_path, output_path)
+
+        return FileResponse(
+            path=extracted_path, filename="extracted_image.png", media_type="image/png"
+        )
+
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+
+    finally:
+        stego_image.file.close()
+
+
+@router.post("/image/lsb_random/encode")
+async def encode_image_in_image_random(
+    cover_image: UploadFile = File(...),
+    secret_image: UploadFile = File(...),
+    key: str = Form(...),
+):
+    """Encode a secret image into a cover image using LSB steganography with pseudorandom pixel selection."""
+    steg = ImageInImageLSBRandom(key=key)
+    cover_path = f"/tmp/cover_{uuid.uuid4()}.png"
+    secret_path = f"/tmp/secret_{uuid.uuid4()}.png"
+    output_path = f"/tmp/output_{uuid.uuid4()}.png"
+
+    try:
+        # Save uploaded files to temp paths
+        with open(cover_path, "wb") as buffer:
+            shutil.copyfileobj(cover_image.file, buffer)
+        with open(secret_path, "wb") as buffer:
+            shutil.copyfileobj(secret_image.file, buffer)
+
+        # Encode secret image into cover image
+        steg.encode(cover_path, secret_path, output_path)
+
+        return FileResponse(
+            path=output_path, filename="encoded_image.png", media_type="image/png"
+        )
+
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+
+    finally:
+        cover_image.file.close()
+        secret_image.file.close()
+
+
+@router.post("/image/lsb_random/decode")
+async def decode_image_from_image_random(
+    stego_image: UploadFile = File(...),
+    key: str = Form(...),
+):
+    """Decode and extract a hidden image from a stego image using LSB steganography with pseudorandom pixel selection."""
+    steg = ImageInImageLSBRandom(key=key)
+    input_path = f"/tmp/input_{uuid.uuid4()}.png"
+    output_path = f"/tmp/extracted_{uuid.uuid4()}.png"
+
+    try:
+        # Save uploaded file to temp path
+        with open(input_path, "wb") as buffer:
+            shutil.copyfileobj(stego_image.file, buffer)
+
+        # Decode hidden image
+        extracted_path = steg.decode(input_path, output_path)
+
+        return FileResponse(
+            path=extracted_path, filename="extracted_image.png", media_type="image/png"
+        )
+
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+
+    finally:
+        stego_image.file.close()
+
+
+@router.post("/image/lsb_random_enc/encode")
+async def encode_image_in_image_encrypted(
+    cover_image: UploadFile = File(...),
+    secret_image: UploadFile = File(...),
+    key: str = Form(...),
+):
+    """Encode and encrypt a secret image into a cover image using LSB steganography with pseudorandom pixel selection."""
+    steg = ImageInImageLSBRandomEnc(key=key)
+    cover_path = f"/tmp/cover_{uuid.uuid4()}.png"
+    secret_path = f"/tmp/secret_{uuid.uuid4()}.png"
+    output_path = f"/tmp/output_{uuid.uuid4()}.png"
+
+    try:
+        # Save uploaded files to temp paths
+        with open(cover_path, "wb") as buffer:
+            shutil.copyfileobj(cover_image.file, buffer)
+        with open(secret_path, "wb") as buffer:
+            shutil.copyfileobj(secret_image.file, buffer)
+
+        # Encode and encrypt secret image into cover image
+        steg.encode(cover_path, secret_path, output_path)
+
+        return FileResponse(
+            path=output_path, filename="encoded_image.png", media_type="image/png"
+        )
+
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+
+    finally:
+        cover_image.file.close()
+        secret_image.file.close()
+
+
+@router.post("/image/lsb_random_enc/decode")
+async def decode_image_from_image_encrypted(
+    stego_image: UploadFile = File(...),
+    key: str = Form(...),
+):
+    """Decode and decrypt a hidden image from a stego image using LSB steganography with pseudorandom pixel selection."""
+    steg = ImageInImageLSBRandomEnc(key=key)
+    input_path = f"/tmp/input_{uuid.uuid4()}.png"
+    output_path = f"/tmp/extracted_{uuid.uuid4()}.png"
+
+    try:
+        # Save uploaded file to temp path
+        with open(input_path, "wb") as buffer:
+            shutil.copyfileobj(stego_image.file, buffer)
+
+        # Decode and decrypt hidden image
+        extracted_path = steg.decode(input_path, output_path)
+
+        return FileResponse(
+            path=extracted_path, filename="extracted_image.png", media_type="image/png"
+        )
+
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+
+    finally:
+        stego_image.file.close()
+
+
+@router.post("image/dct/encode")
 async def dct_encode_image(
     cover_image: UploadFile = File(...),
     secret_image: UploadFile = File(...),
@@ -101,7 +402,7 @@ async def dct_encode_image(
         secret_image.file.close()
 
 
-@router.post("/dct/decode")
+@router.post("image/dct/decode")
 async def dct_decode_image(
     image: UploadFile = File(...),
 ):
@@ -121,114 +422,6 @@ async def dct_decode_image(
         return FileResponse(
             path=output_path, filename="extracted_image.png", media_type="image/png"
         )
-
-    except Exception as e:
-        return JSONResponse(content={"error": str(e)}, status_code=500)
-
-    finally:
-        image.file.close()
-
-
-@router.post("/lsb_random/encode")
-async def lsb_random_encode_image(
-    image: UploadFile = File(...),
-    message: str = Form(...),
-    key: str = Form(...),
-):
-    """Encode a hidden message into an image using LSB steganography with randomized pixel selection."""
-    steg = LSBRandom(key=key)
-    input_path = f"/tmp/input_{uuid.uuid4()}.png"
-    output_path = f"/tmp/output_{uuid.uuid4()}.png"
-
-    try:
-        with open(input_path, "wb") as buffer:
-            shutil.copyfileobj(image.file, buffer)
-
-        steg.encode(input_path, message, output_path)
-
-        return FileResponse(
-            path=output_path, filename="encoded_image.png", media_type="image/png"
-        )
-
-    except Exception as e:
-        return JSONResponse(content={"error": str(e)}, status_code=500)
-
-    finally:
-        image.file.close()
-
-
-@router.post("/lsb_random/decode")
-async def lsb_random_decode_image(
-    image: UploadFile = File(...),
-    key: str = Form(...),
-):
-    """Decode and extract a hidden message from an encoded image using LSB steganography with randomized pixel selection."""
-    steg = LSBRandom(key=key)
-    input_path = f"/tmp/input_{uuid.uuid4()}.png"
-
-    try:
-        # Save uploaded file to temp path
-        with open(input_path, "wb") as buffer:
-            shutil.copyfileobj(image.file, buffer)
-
-        # Decode message
-        decoded_message = steg.decode(input_path)
-
-        return JSONResponse(content={"message": decoded_message}, status_code=200)
-
-    except Exception as e:
-        return JSONResponse(content={"error": str(e)}, status_code=500)
-
-    finally:
-        image.file.close()
-
-
-@router.post("/lsb_random_enc/encode")
-async def lsb_random_enc_encode_image(
-    image: UploadFile = File(...),
-    message: str = Form(...),
-    key: str = Form(...),
-):
-    """Encode and encrypt a hidden message into an image using LSB steganography with randomized pixel selection."""
-    steg = LSBRandomEnc(key=key)
-    input_path = f"/tmp/input_{uuid.uuid4()}.png"
-    output_path = f"/tmp/output_{uuid.uuid4()}.png"
-
-    try:
-        with open(input_path, "wb") as buffer:
-            shutil.copyfileobj(image.file, buffer)
-
-        steg.encode(input_path, message, output_path)
-
-        return FileResponse(
-            path=output_path, filename="encoded_image.png", media_type="image/png"
-        )
-
-    except Exception as e:
-        return JSONResponse(content={"error": str(e)}, status_code=500)
-
-    finally:
-        image.file.close()
-
-
-@router.post("/lsb_random_enc/decode")
-async def lsb_random_enc_decode_image(
-    image: UploadFile = File(...),
-    key: str = Form(...),
-):
-    """Decode and decrypt a hidden message from an encoded image using LSB steganography with randomized pixel selection."""
-    steg = LSBRandomEnc(key=key)
-    input_path = f"/tmp/input_{uuid.uuid4()}.png"
-
-    try:
-        # Save uploaded file to temp path
-        with open(input_path, "wb") as buffer:
-            shutil.copyfileobj(image.file, buffer)
-
-        # Decode and decrypt message
-        decoded_message = steg.decode(input_path)
-
-        return JSONResponse(content={"message": decoded_message}, status_code=200)
 
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)

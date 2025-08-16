@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from steganography.base import SteganographyBase
+from ..base import SteganographyBase
 
 
 class DCT(SteganographyBase):

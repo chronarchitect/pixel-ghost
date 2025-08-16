@@ -2,46 +2,20 @@ from PIL import Image
 import numpy as np
 import random
 import hashlib
-from steganography.base import SteganographyBase
-from cryptography.fernet import Fernet
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-import base64
+from ..base import SteganographyBase
 
 
-class LSBRandomEnc(SteganographyBase):
+class LSBRandom(SteganographyBase):
     """
-    Enhanced LSB steganography implementation with:
-    1. Pseudorandom pixel selection
-    2. Message encryption
-    3. Key derivation for both pixel selection and encryption
+    Least Significant Bit (LSB) steganography implementation with pseudorandom pixel selection.
+
+    This implementation uses a key to generate pseudorandom pixel positions for increased security.
     """
 
     def __init__(self, key="default_key"):
-        """Initialize with a master key for both pixel selection and encryption."""
+        """Initialize with a key for pseudorandom number generation."""
         super().__init__()
-        self.master_key = key
-        # Derive separate keys for pixel selection and encryption
-        self._setup_keys()
-
-    def _setup_keys(self):
-        """Setup different keys for pixel selection and encryption using key derivation."""
-        # Use master key to derive two different keys
-        encryption_salt = b"message_encryption_salt"
-
-        # Key for pixel selection (use SHA-256 for consistency with original implementation)
-        pixel_key = hashlib.sha256(f"{self.master_key}_pixel".encode()).hexdigest()
-        self.pixel_key = pixel_key
-
-        # Key for encryption (use PBKDF2 for secure key derivation)
-        kdf = PBKDF2HMAC(
-            algorithm=hashes.SHA256(),
-            length=32,
-            salt=encryption_salt,
-            iterations=480000,
-        )
-        encryption_key = base64.urlsafe_b64encode(kdf.derive(self.master_key.encode()))
-        self.fernet = Fernet(encryption_key)
+        self.key = key
 
     def generate_pixel_positions(
         self, key, max_pixels, num_positions, exclude_positions=None
@@ -89,44 +63,36 @@ class LSBRandomEnc(SteganographyBase):
 
     def encode(self, image_path, message, output_path, key=None):
         """
-        Encode an encrypted message into an image using LSB steganography with pseudorandom pixel selection.
+        Encode a message into an image using LSB steganography with pseudorandom pixel selection.
 
         Args:
             image_path (str): Path to the cover image
-            message (str): Message to hide (will be encrypted)
+            message (str): Message to hide
             output_path (str): Path to save the stego image
             key (str, optional): Override the instance key for this operation
         """
         if key is not None:
-            self.master_key = key
-            self._setup_keys()
-
-        # First encrypt the message
-        encrypted_message = self.fernet.encrypt(message.encode())
+            self.key = key
 
         image = Image.open(image_path)
         image_array = np.array(image)
         flat_pixels = image_array.flatten()
 
-        # Convert encrypted message to binary
-        binary_message = self.to_bin(encrypted_message)
+        binary_message = self.to_bin(message)
         datalen = len(binary_message)
 
         if datalen > flat_pixels.size:
-            raise ValueError("Encrypted message is too long to encode in the image.")
+            raise ValueError("Message is too long to encode in the image.")
 
         # First, generate positions for the length (32 bits)
         length_binary = format(datalen, "032b")  # 32 bits for length
         length_positions = self.generate_pixel_positions(
-            self.pixel_key + "_length", flat_pixels.size, 32
+            self.key + "_length", flat_pixels.size, 32
         )
 
         # Then generate positions for the message, excluding the length positions
         pixel_positions = self.generate_pixel_positions(
-            self.pixel_key,
-            flat_pixels.size,
-            datalen,
-            exclude_positions=length_positions,
+            self.key, flat_pixels.size, datalen, exclude_positions=length_positions
         )
 
         # Embed message length
@@ -134,33 +100,33 @@ class LSBRandomEnc(SteganographyBase):
             flat_pixels[pos] &= 0b11111110  # Clear LSB
             flat_pixels[pos] |= int(length_binary[i])
 
-        # Embed encrypted message
+        # Embed message
         for i, pos in enumerate(pixel_positions):
             flat_pixels[pos] &= 0b11111110  # Clear LSB
             flat_pixels[pos] |= int(binary_message[i])
 
         encoded_image = flat_pixels.reshape(image_array.shape)
+        # Convert to PIL Image without deprecated mode parameter
         encoded_image = Image.fromarray(encoded_image)
         encoded_image.save(output_path)
 
     def decode(self, image_path, key=None):
         """
-        Decode and decrypt an LSB hidden message from an image using pseudorandom pixel selection.
+        Decode an LSB hidden message from an image using pseudorandom pixel selection.
 
         Args:
             image_path (str): Path to the stego image
             key (str, optional): Override the instance key for this operation
 
         Returns:
-            str: The decrypted hidden message
+            str: The hidden message or error message if no valid message is found
 
         Raises:
             ValueError: If the image cannot be read or if the key is invalid
-            RuntimeError: If the extracted message length is invalid or decryption fails
+            RuntimeError: If the extracted message length is invalid
         """
         if key is not None:
-            self.master_key = key
-            self._setup_keys()
+            self.key = key
 
         try:
             image = Image.open(image_path)
@@ -173,7 +139,7 @@ class LSBRandomEnc(SteganographyBase):
         try:
             # First, extract the length
             length_positions = self.generate_pixel_positions(
-                self.pixel_key + "_length", flat_pixels.size, 32
+                self.key + "_length", flat_pixels.size, 32
             )
             length_binary = ""
             for pos in length_positions:
@@ -184,20 +150,19 @@ class LSBRandomEnc(SteganographyBase):
             if datalen <= 0 or datalen > flat_pixels.size:
                 raise RuntimeError(
                     "Invalid message length detected. This is usually because one or more of the following:\n"
-                    "1. The decryption key is incorrect\n"
+                    "1. The key is incorrect\n"
                     "2. The image has been modified\n"
                     "3. The image does not contain a hidden message"
                 )
 
         except ValueError as e:
             raise RuntimeError(f"Failed to extract message length: {str(e)}")
+        except Exception as e:
+            raise RuntimeError(f"Unexpected error while decoding: {str(e)}")
 
         # Generate pixel positions for message extraction, excluding length positions
         pixel_positions = self.generate_pixel_positions(
-            self.pixel_key,
-            flat_pixels.size,
-            datalen,
-            exclude_positions=length_positions,
+            self.key, flat_pixels.size, datalen, exclude_positions=length_positions
         )
 
         # Extract LSBs from the selected positions
@@ -205,21 +170,8 @@ class LSBRandomEnc(SteganographyBase):
         for pos in pixel_positions:
             binary_data += str(flat_pixels[pos] & 1)
 
-        # Convert binary data to bytes
-        # First, make sure the length is a multiple of 8
-        padding = (8 - (len(binary_data) % 8)) % 8
-        binary_data = binary_data + "0" * padding
-
-        # Convert to bytes
-        byte_data = bytearray()
-        for i in range(0, len(binary_data), 8):
-            byte_data.append(int(binary_data[i : i + 8], 2))
-
-        try:
-            # Decrypt the extracted message
-            decrypted_message = self.fernet.decrypt(bytes(byte_data))
-            return decrypted_message.decode()
-        except Exception as e:
-            raise RuntimeError(
-                "Failed to decrypt the extracted data. The encryption key is incorrect or the data is corrupted."
-            )
+        # Convert every 8 bits to a character
+        chars = [
+            chr(int(binary_data[i : i + 8], 2)) for i in range(0, len(binary_data), 8)
+        ]
+        return "".join(chars)

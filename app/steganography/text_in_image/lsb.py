@@ -44,6 +44,8 @@ class LSB(SteganographyBase):
         encoded_image = Image.fromarray(encoded_image, mode=image.mode)
         encoded_image.save(output_path)
 
+        return output_path
+
     def decode(self, image_path):
         """Efficiently decode an LSB hidden message from an image using NumPy."""
         image = Image.open(image_path)

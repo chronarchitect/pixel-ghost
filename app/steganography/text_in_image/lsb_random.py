@@ -110,6 +110,8 @@ class LSBRandom(SteganographyBase):
         encoded_image = Image.fromarray(encoded_image)
         encoded_image.save(output_path)
 
+        return output_path
+
     def decode(self, image_path, key=None):
         """
         Decode an LSB hidden message from an image using pseudorandom pixel selection.

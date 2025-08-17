@@ -7,16 +7,56 @@ from steganography.text_in_image.lsb_random_enc import LSBRandomEnc
 from steganography.image_in_image.lsb import ImageInImageLSB
 from steganography.image_in_image.lsb_random import ImageInImageLSBRandom
 from steganography.image_in_image.lsb_random_enc import ImageInImageLSBRandomEnc
+from tasks import TaskQueueManager
 import shutil
 import uuid
+import os
 
 router = APIRouter()
-
+TaskQueueManager.start()
 
 @router.get("/")
 async def read_root():
     """Health check endpoint."""
     return {"message": "PixelGhost backend is alive!"}
+
+# Task status endpoint
+@router.get("/task/status/{task_id}")
+async def get_task_status(task_id: str):
+    """
+    Get the status of a submitted task.
+    """
+    try:
+        status = TaskQueueManager.get_status(task_id)
+        return JSONResponse(content={"task_id": task_id, "status": status}, status_code=200)
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+
+
+# Task result endpoint
+@router.get("/task/result/{task_id}")
+async def get_task_result(task_id: str):
+    """
+    Get the result of a completed task (e.g., download the output file).
+    """
+    try:
+        result = TaskQueueManager.get_result(task_id)
+        # If result is a file path, return it as a file response
+        if isinstance(result, str):
+            # Try to return as file if file exists
+            try:
+                # check if file exists
+                if not os.path.exists(result):
+                    raise FileNotFoundError(f"File {result} not found.")
+                return FileResponse(path=result, filename=result.split("/")[-1])
+            except Exception:
+                # If not a file, return as plain text
+                return JSONResponse(content={"result": result}, status_code=200)
+        else:
+            # Not a file path, just return as JSON
+            return JSONResponse(content={"result": result}, status_code=200)
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=500)
 
 
 @router.post("/text/lsb/encode")
@@ -33,17 +73,17 @@ async def encode_text_in_image(
         with open(input_path, "wb") as buffer:
             shutil.copyfileobj(image.file, buffer)
 
-        steg.encode(input_path, message, output_path)
+        #steg.encode(input_path, message, output_path)
+        task_id = TaskQueueManager.submit_task(steg.encode, input_path, message, output_path)
 
-        return FileResponse(
-            path=output_path, filename="encoded_image.png", media_type="image/png"
-        )
+        return JSONResponse(content={"task_id": task_id}, status_code=202)
 
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)
 
     finally:
         image.file.close()
+
 
 
 @router.post("/text/lsb/decode")
@@ -60,9 +100,11 @@ async def decode_text_from_image(
             shutil.copyfileobj(image.file, buffer)
 
         # Decode message
-        decoded_message = steg.decode(input_path)
+        #decoded_message = steg.decode(input_path)
+        task_id = TaskQueueManager.submit_task(steg.decode, input_path)
 
-        return JSONResponse(content={"message": decoded_message}, status_code=200)
+        # Return the task ID for tracking
+        return JSONResponse(content={"task_id": task_id}, status_code=202)
 
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)
@@ -86,11 +128,11 @@ async def lsb_random_encode_text_in_image(
         with open(input_path, "wb") as buffer:
             shutil.copyfileobj(image.file, buffer)
 
-        steg.encode(input_path, message, output_path)
+        # Encode message
+        #output_path = steg.encode(input_path, message, output_path)
+        task_id = TaskQueueManager.submit_task(steg.encode, input_path, message, output_path)
 
-        return FileResponse(
-            path=output_path, filename="encoded_image.png", media_type="image/png"
-        )
+        return JSONResponse(content={"task_id": task_id}, status_code=202)
 
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)
@@ -114,9 +156,11 @@ async def lsb_random_decode_text_from_image(
             shutil.copyfileobj(image.file, buffer)
 
         # Decode message
-        decoded_message = steg.decode(input_path)
+        #decoded_message = steg.decode(input_path, key)
+        task_id = TaskQueueManager.submit_task(steg.decode, input_path, key)
 
-        return JSONResponse(content={"message": decoded_message}, status_code=200)
+        # Return the task ID for tracking
+        return JSONResponse(content={"task_id": task_id}, status_code=202)
 
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)
@@ -140,11 +184,12 @@ async def lsb_random_enc_encode_text_in_image(
         with open(input_path, "wb") as buffer:
             shutil.copyfileobj(image.file, buffer)
 
-        steg.encode(input_path, message, output_path)
+        # Encode and encrypt message
+        #output_path = steg.encode(input_path, message, output_path)
+        task_id = TaskQueueManager.submit_task(steg.encode, input_path, message, output_path)
 
-        return FileResponse(
-            path=output_path, filename="encoded_image.png", media_type="image/png"
-        )
+        # Return the task ID for tracking
+        return JSONResponse(content={"task_id": task_id}, status_code=202)
 
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)
@@ -168,9 +213,11 @@ async def lsb_random_enc_decode_text_from_image(
             shutil.copyfileobj(image.file, buffer)
 
         # Decode and decrypt message
-        decoded_message = steg.decode(input_path)
+        # decoded_message = steg.decode(input_path)
+        task_id = TaskQueueManager.submit_task(steg.decode, input_path, key)
 
-        return JSONResponse(content={"message": decoded_message}, status_code=200)
+        # Return the task ID for tracking
+        return JSONResponse(content={"task_id": task_id}, status_code=202)
 
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)

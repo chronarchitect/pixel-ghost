@@ -1,4 +1,4 @@
-# ──────[ PixelGhost | A∆D ]──────
+# ──────[ PixelGhost | ∆H ]──────
 
 **PixelGhost** is an open-source, high-performance image steganography engine built for scale and modularity. Designed with cryptographic integrity and future agentic integration in mind, PixelGhost lets you embed, extract, and audit data in images using classic and cutting-edge techniques.
 

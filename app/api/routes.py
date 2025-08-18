@@ -248,11 +248,11 @@ async def encode_image_in_image(
             shutil.copyfileobj(secret_image.file, buffer)
 
         # Encode secret image into cover image
-        steg.encode(cover_path, secret_path, output_path)
+        # steg.encode(cover_path, secret_path, output_path)
+        task_id = TaskQueueManager.submit_task(steg.encode, cover_path, secret_path, output_path)
 
-        return FileResponse(
-            path=output_path, filename="encoded_image.png", media_type="image/png"
-        )
+        # Return the task ID for tracking
+        return JSONResponse(content={"task_id": task_id}, status_code=202)
 
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)
@@ -277,11 +277,11 @@ async def decode_image_from_image(
             shutil.copyfileobj(stego_image.file, buffer)
 
         # Decode hidden image
-        extracted_path = steg.decode(input_path, output_path)
+        # extracted_path = steg.decode(input_path, output_path)
+        task_id = TaskQueueManager.submit_task(steg.decode, input_path, output_path)
 
-        return FileResponse(
-            path=extracted_path, filename="extracted_image.png", media_type="image/png"
-        )
+        # Return the task ID for tracking
+        return JSONResponse(content={"task_id": task_id}, status_code=202)
 
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)
@@ -310,11 +310,10 @@ async def encode_image_in_image_random(
             shutil.copyfileobj(secret_image.file, buffer)
 
         # Encode secret image into cover image
-        steg.encode(cover_path, secret_path, output_path)
+        task_id = TaskQueueManager.submit_task(steg.encode, cover_path, secret_path, output_path)
 
-        return FileResponse(
-            path=output_path, filename="encoded_image.png", media_type="image/png"
-        )
+        # Return the task ID for tracking
+        return JSONResponse(content={"task_id": task_id}, status_code=202)
 
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)
@@ -340,11 +339,10 @@ async def decode_image_from_image_random(
             shutil.copyfileobj(stego_image.file, buffer)
 
         # Decode hidden image
-        extracted_path = steg.decode(input_path, output_path)
+        task_id = TaskQueueManager.submit_task(steg.decode, input_path, output_path)
 
-        return FileResponse(
-            path=extracted_path, filename="extracted_image.png", media_type="image/png"
-        )
+        # Return the task ID for tracking
+        return JSONResponse(content={"task_id": task_id}, status_code=202)
 
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)
@@ -373,11 +371,10 @@ async def encode_image_in_image_encrypted(
             shutil.copyfileobj(secret_image.file, buffer)
 
         # Encode and encrypt secret image into cover image
-        steg.encode(cover_path, secret_path, output_path)
+        task_id = TaskQueueManager.submit_task(steg.encode, cover_path, secret_path, output_path)
 
-        return FileResponse(
-            path=output_path, filename="encoded_image.png", media_type="image/png"
-        )
+        # Return the task ID for tracking
+        return JSONResponse(content={"task_id": task_id}, status_code=202)
 
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)
@@ -403,11 +400,10 @@ async def decode_image_from_image_encrypted(
             shutil.copyfileobj(stego_image.file, buffer)
 
         # Decode and decrypt hidden image
-        extracted_path = steg.decode(input_path, output_path)
+        task_id = TaskQueueManager.submit_task(steg.decode, input_path, output_path)
 
-        return FileResponse(
-            path=extracted_path, filename="extracted_image.png", media_type="image/png"
-        )
+        # Return the task ID for tracking
+        return JSONResponse(content={"task_id": task_id}, status_code=202)
 
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)
@@ -435,11 +431,11 @@ async def dct_encode_image(
             shutil.copyfileobj(secret_image.file, buffer)
 
         # Encode secret image into cover image
-        steg.encode(cover_path, secret_path, output_path)
+        # steg.encode(cover_path, secret_path, output_path)
+        task_id = TaskQueueManager.submit_task(steg.encode, cover_path, secret_path, output_path)
 
-        return FileResponse(
-            path=output_path, filename="encoded_image.png", media_type="image/png"
-        )
+        # Return the task ID for tracking
+        return JSONResponse(content={"task_id": task_id}, status_code=202)
 
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)
@@ -464,11 +460,11 @@ async def dct_decode_image(
             shutil.copyfileobj(image.file, buffer)
 
         # Decode hidden image
-        steg.decode(input_path, output_path)
+        # steg.decode(input_path, output_path)
+        task_id = TaskQueueManager.submit_task(steg.decode, input_path, output_path)
 
-        return FileResponse(
-            path=output_path, filename="extracted_image.png", media_type="image/png"
-        )
+        # Return the task ID for tracking
+        return JSONResponse(content={"task_id": task_id}, status_code=202)
 
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)

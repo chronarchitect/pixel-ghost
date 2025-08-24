@@ -20,6 +20,17 @@ async def read_root():
     """Health check endpoint."""
     return {"message": "PixelGhost backend is alive!"}
 
+@router.get("/tasks")
+async def list_all_tasks():
+    """
+    List all submitted tasks with their IDs.
+    """
+    try:
+        tasks = TaskQueueManager.get_all_tasks()
+        return JSONResponse(content={"tasks": tasks}, status_code=200)
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+
 # Task status endpoint
 @router.get("/task/status/{task_id}")
 async def get_task_status(task_id: str):

@@ -14,6 +14,13 @@ class TaskQueueManager:
     num_workers = multiprocessing.cpu_count()
 
     @classmethod
+    def get_all_tasks(cls):
+        # return task IDs and their statuses
+        if not cls.task_status:
+            return {}
+        return {{"id": task_id, "status": status} for task_id, status in cls.task_status.items()}
+    
+    @classmethod
     def submit_task(cls, fn, *args, priority=10, **kwargs):
         task_id = str(uuid.uuid4())
         task = Task(task_id, fn, args, kwargs, priority)

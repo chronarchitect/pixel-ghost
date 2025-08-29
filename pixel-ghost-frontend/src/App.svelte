@@ -1,15 +1,13 @@
 <script lang="ts">
+  import RippleGrid from './components/RippleGrid.svelte';
   let name = "";
 </script>
 
-<main>
-  <p>What is your name?</p>
-  <form>
-    <input bind:value={name} placeholder="Enter your name" />
-  </form>
-  {#if name == ""}
-    <p>Please enter your name above.</p>
-  {:else}
-    <p>Hello {name}!</p>
-  {/if}
-</main>
+<div style="position: relative; min-height: 100vh; background: #010b12">
+  <!-- Background effect -->
+  <RippleGrid />
+  <!-- Main content -->
+  <div class="font-mono text-9xl object-center text-center text-white">
+    <h1>Pixel Ghost</h1>
+  </div>
+</div>

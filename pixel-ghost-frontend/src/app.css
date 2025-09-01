@@ -1,1 +1,50 @@
+@import url('https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&family=Press+Start+2P&display=swap');
 @import "tailwindcss";
+
+@font-face {
+  font-family: 'RustyColaPen';
+  src: url('./assets/fonts/RustyColaPen-Regular.otf') format('opentype'),
+        url('./assets/fonts/RustyColaPen-AllCaps.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+
+:root{
+      --bg:#0a0b12;          /* deep night */
+      --panel:#101321;       /* card bg */
+      --line:#21253a;        /* hairline */
+      --purple:#5b2a86;      /* EVA-01 purple */
+      --neon:#76ff03;        /* EVA lime */
+      --warn:#ff7e00;        /* warning orange */
+      --mag:#ff2fb9;         /* magenta accent */
+      --fg:#e6ecf3;          /* text */
+      --muted:#9aa6bd;
+      --shadow:0 0 .5px rgba(118,255,3,.5), 0 0 16px rgba(118,255,3,.18), inset 0 0 0 1px rgba(118,255,3,.15);
+    }
+
+body{
+  background: var(--bg);
+  color: var(--fg);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.pixel{
+  font-family: "Pixelify Sans", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: normal;
+  font-style: normal;
+}
+
+.ghost {
+  font-family: 'RustyColaPen', sans-serif;
+  color: var(--mag);
+  text-shadow: var(--shadow);
+  user-select: none;
+  pointer-events: none;
+}

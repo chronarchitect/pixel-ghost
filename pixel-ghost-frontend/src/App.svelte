@@ -3,11 +3,25 @@
   let name = "";
 </script>
 
-<div style="position: relative; min-height: 100vh; background: #010b12">
+<div>
   <!-- Background effect -->
   <RippleGrid />
   <!-- Main content -->
-  <div class="font-mono text-9xl object-center text-center text-white">
-    <h1>Pixel Ghost</h1>
+   <nav class="relative bg-gray">
+    <div class="text-white text-lg font-semibold">
+      Pixel Ghost Menu
+    </div>
+  </nav>  
+  <div class="h-screen flex flex-col justify-center items-center bg-linear-to-b from-[rgba(0,0,0,0)] to-[rgba(10,11,18,0.95)] via-[rgba(0,0,0,0.6)]">
+    <div class="logo basis-1 text-9xl object-center text-center text-white">
+      <div class="pixel">
+        Pixel
+      </div>
+      <div class="ghost">
+        Ghost
+      </div>
+    </div>
+
   </div>
+  
 </div>

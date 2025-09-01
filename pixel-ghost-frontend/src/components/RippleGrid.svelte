@@ -6,11 +6,11 @@
   export let rippleSpeed = 240;      // px/sec ring expansion
   export let rippleWidth = 18;       // ring thickness (Gaussian sigma, px)
   export let fadeSeconds = 2.2;      // ripple lifetime
-  export let color = 'rgba(118,255,3,0.9)'; // EVA neon; use any CSS color
+  export let color = '#76ff03'; // EVA neon; use any CSS color
   export let background = 'transparent';    // or e.g. '#0a0b12'
-  export let auto = false;            // emit idle pulses automatically
-  export let autoEveryMs = 1600;     // ms between idle pulses
-  export let zIndex = 0;            // stack under content by default
+  export let auto = true;            // emit idle pulses automatically
+  export let autoEveryMs = 5600;     // ms between idle pulses
+  export let zIndex = -1;            // stack under content by default
 
   let container, canvas, ctx;
   let dpr = 1;

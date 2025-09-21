@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Play } from '@lucide/svelte';
   import RippleGrid from './components/RippleGrid.svelte';
   let name = "";
 </script>
@@ -7,7 +8,7 @@
   <!-- Background effect -->
   <RippleGrid />
   <!-- Main content -->
-   <nav class="relative bg-gray">
+  <nav class="relative bg-gray">
     <div class="text-white text-lg font-semibold">
       Pixel Ghost Menu
     </div>
@@ -21,7 +22,10 @@
         Ghost
       </div>
     </div>
-
+    <div class="button rounded-full bg-yellow-500 hover:bg-lime-400 text-black font-bold py-4 px-8 transition duration-300 ease-in-out transform hover:scale-105">
+        <Play class="inline-block mr-2" />Start
+    </div>
+    
   </div>
   
 </div>

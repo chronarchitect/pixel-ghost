@@ -31,9 +31,27 @@ async def get_task_status(task_id: str):
     """
     try:
         status = TaskQueueManager.get_status(task_id)
-        return JSONResponse(
-            content={"task_id": task_id, "status": status}, status_code=200
-        )
+        
+        if status == "not_found":
+            return JSONResponse(
+                content={"task_id": task_id, "status": status}, status_code=404
+            )
+        elif status in ["queued", "processing"]:
+            return JSONResponse(
+                content={"task_id": task_id, "status": status}, status_code=202
+            )
+        elif status == "completed":
+            return JSONResponse(
+                content={"task_id": task_id, "status": status}, status_code=200
+            )
+        elif status == "failed":
+            return JSONResponse(
+                content={"task_id": task_id, "status": status}, status_code=400
+            )
+        else:
+            return JSONResponse(
+                content={"task_id": task_id, "status": status}, status_code=500
+            )
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)
 

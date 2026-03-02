@@ -1,16 +1,14 @@
 from fastapi import FastAPI
-from api.routes import router as api_router
-from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 
-app = FastAPI()
-app.mount("/", StaticFiles(directory="staticfiles", html=True), name="static")
+from api.routes import router as api_router
+
+app = FastAPI(title="PixelGhost API", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],          # for local dev; lock down later
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )

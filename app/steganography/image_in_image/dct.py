@@ -270,7 +270,7 @@ class DCT(SteganographyBase):
 
         # Save the stego image
         cv2.imwrite(output_path, stego_img)
-        return bit_count, (target_height, target_width)
+        return output_path
 
     def decode(self, stego_path, output_path):
         """Extract hidden image from stego image."""

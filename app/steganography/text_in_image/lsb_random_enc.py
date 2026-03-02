@@ -79,8 +79,8 @@ class LSBRandomEnc(SteganographyBase):
     def to_bin(self, data):
         """Convert data to binary format as string."""
         if isinstance(data, str):
-            return "".join(format(ord(i), "08b") for i in data)
-        elif isinstance(data, bytes) or isinstance(data, bytearray):
+            data = data.encode("utf-8")
+        if isinstance(data, (bytes, bytearray)):
             return "".join(format(i, "08b") for i in data)
         elif isinstance(data, int):
             return format(data, "08b")

@@ -14,8 +14,8 @@ class LSB(SteganographyBase):
     def to_bin(self, data):
         """Convert data to binary format as string."""
         if isinstance(data, str):
-            return "".join(format(ord(i), "08b") for i in data)
-        elif isinstance(data, bytes) or isinstance(data, bytearray):
+            data = data.encode("utf-8")
+        if isinstance(data, (bytes, bytearray)):
             return "".join(format(i, "08b") for i in data)
         elif isinstance(data, int):
             return format(data, "08b")
@@ -41,7 +41,7 @@ class LSB(SteganographyBase):
         )
 
         encoded_image = flat_pixels.reshape(image_array.shape)
-        encoded_image = Image.fromarray(encoded_image, mode=image.mode)
+        encoded_image = Image.fromarray(encoded_image)
         encoded_image.save(output_path)
 
         return output_path
@@ -57,11 +57,15 @@ class LSB(SteganographyBase):
         lsb_array = flat_pixels & 1
         binary_data = "".join(map(str, lsb_array.tolist()))
 
-        # Convert every 8 bits to a character
-        chars = [
-            chr(int(binary_data[i : i + 8], 2)) for i in range(0, len(binary_data), 8)
-        ]
-        message = "".join(chars)
+        # Convert every 8 bits to a byte
+        bytes_data = bytearray()
+        for i in range(0, len(binary_data), 8):
+            bytes_data.append(int(binary_data[i : i + 8], 2))
+        
+        try:
+            message = bytes_data.decode("utf-8", errors="replace")
+        except Exception:
+            message = bytes_data.decode("latin-1", errors="replace")
 
         end_idx = message.find("###")
         if end_idx == -1:

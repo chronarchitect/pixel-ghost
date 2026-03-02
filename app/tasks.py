@@ -16,9 +16,7 @@ class TaskQueueManager:
     @classmethod
     def get_all_tasks(cls):
         # return task IDs and their statuses
-        if not cls.task_status:
-            return {}
-        return {{"id": task_id, "status": status} for task_id, status in cls.task_status.items()}
+        return [{"id": task_id, "status": status} for task_id, status in cls.task_status.items()]
     
     @classmethod
     def submit_task(cls, fn, *args, priority=10, **kwargs):

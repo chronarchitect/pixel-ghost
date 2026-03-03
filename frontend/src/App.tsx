@@ -20,18 +20,21 @@ function App() {
   return (
     <main className="min-h-screen bg-background text-foreground">
       <div className="mx-auto w-full max-w-6xl space-y-6 px-4 py-8 md:px-6">
-        <header className="card-header-gradient flex flex-col gap-4 rounded-xl border-none p-6 sm:flex-row sm:items-center sm:justify-between text-white">
+        <header className="card-header-gradient scanline flex flex-col gap-4 rounded-xl border-none p-6 sm:flex-row sm:items-center sm:justify-between text-white shadow-[0_0_20px_rgba(168,255,0,0.1)]">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight">PixelGhost</h1>
-            <p className="text-sm opacity-90">Secure Steganography Control Center</p>
+            <div className="flex items-center gap-2">
+              <div className="size-3 bg-success animate-pulse rounded-full shadow-[0_0_10px_#a8ff00]"></div>
+              <h1 className="text-3xl font-black tracking-tighter uppercase italic">PixelGhost // Eva-01</h1>
+            </div>
+            <p className="text-xs tracking-widest uppercase opacity-80 mt-1">Nerv / Steganography Control System</p>
           </div>
 
-          <div className="flex items-center gap-3">
-            <Badge variant={healthQuery.isSuccess ? 'success' : 'danger'} className="shadow-lg border-none">
+          <div className="flex items-center gap-4">
+            <Badge variant={healthQuery.isSuccess ? 'success' : 'danger'} className="shadow-lg border border-white/20 px-4 py-1">
               <ShieldCheck className="mr-1.5 size-4" />
-              {healthQuery.isSuccess ? 'API Online' : 'API Offline'}
+              {healthQuery.isSuccess ? 'SYSTEM ONLINE' : 'SYSTEM OFFLINE'}
             </Badge>
-            <div className="rounded-full bg-white/20 p-0.5 backdrop-blur-sm">
+            <div className="rounded-full bg-black/40 p-1 backdrop-blur-md border border-white/10">
               <ThemeToggle />
             </div>
           </div>

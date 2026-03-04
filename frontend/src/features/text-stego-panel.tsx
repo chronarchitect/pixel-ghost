@@ -2,7 +2,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
 import { z } from 'zod'
-import { Zap } from 'lucide-react'
+import { Zap, AlertCircle } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,14 +12,14 @@ import { Textarea } from '@/components/ui/textarea'
 import { pixelGhostApi } from '@/lib/api/pixelGhost'
 
 const encodeSchema = z.object({
-  image: z.instanceof(File),
-  message: z.string().min(1, 'Message is required'),
+  image: z.instanceof(File, { message: 'Source image required' }),
+  message: z.string().min(1, 'Payload buffer cannot be empty'),
   method: z.enum(['lsb', 'lsb_random', 'lsb_random_enc']),
   key: z.string().optional(),
 })
 
 const decodeSchema = z.object({
-  image: z.instanceof(File),
+  image: z.instanceof(File, { message: 'Encrypted source required' }),
   method: z.enum(['lsb', 'lsb_random', 'lsb_random_enc']),
   key: z.string().optional(),
 })
@@ -52,9 +52,6 @@ export function TextStegoPanel() {
     },
     onSuccess: (data) => {
       alert(`[SYSTEM_SIGNAL] TASK_ACCEPTED: ${data.task_id}`)
-    },
-    onError: (error: any) => {
-      alert(`[CRITICAL_FAILURE] ${error.response?.data?.error || error.message}`)
     },
   })
 
@@ -90,12 +87,13 @@ export function TextStegoPanel() {
                     <Input
                       type="file"
                       accept="image/*"
-                      className="text-[10px] font-mono"
+                      className="text-[10px] font-mono bg-black/40 border-primary/20"
                       onChange={(e) => {
                         const file = e.target.files?.[0]
-                        if (file) encodeForm.setValue('image', file)
+                        if (file) encodeForm.setValue('image', file, { shouldValidate: true })
                       }}
                     />
+                    {encodeForm.formState.errors.image && <p className="text-[10px] text-destructive uppercase font-bold">{encodeForm.formState.errors.image.message}</p>}
                   </div>
                 </div>
 
@@ -131,9 +129,22 @@ export function TextStegoPanel() {
                     className="flex-1 min-h-[150px] font-mono text-xs bg-black/40 border-primary/20 resize-none"
                     {...encodeForm.register('message')} 
                   />
+                  {encodeForm.formState.errors.message && <p className="text-[10px] text-destructive uppercase font-bold mt-1">{encodeForm.formState.errors.message.message}</p>}
                 </div>
               </div>
             </div>
+
+            {submitMutation.isError && (
+              <div className="bg-destructive/10 border-l-2 border-destructive p-3 flex items-start gap-3">
+                <AlertCircle className="size-4 text-destructive shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="text-[10px] font-black text-destructive uppercase tracking-widest">Execution_Halt</p>
+                  <p className="text-[9px] text-destructive/80 font-bold uppercase leading-tight">
+                    {((submitMutation.error as any)?.response?.data?.error) || "SYSTEM_TASK_FAILURE: UNKNOWN_EXCEPTION"}
+                  </p>
+                </div>
+              </div>
+            )}
 
             <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-black font-black uppercase h-12 shadow-[0_0_15px_rgba(255,102,0,0.3)]" disabled={submitMutation.isPending}>
               {submitMutation.isPending ? 'EXECUTING_INJECTION...' : 'Execute_Task'}
@@ -150,12 +161,13 @@ export function TextStegoPanel() {
                   <Input
                     type="file"
                     accept="image/*"
-                    className="text-[10px] font-mono"
+                    className="text-[10px] font-mono bg-black/40 border-primary/20"
                     onChange={(e) => {
                       const file = e.target.files?.[0]
-                      if (file) decodeForm.setValue('image', file)
+                      if (file) decodeForm.setValue('image', file, { shouldValidate: true })
                     }}
                   />
+                  {decodeForm.formState.errors.image && <p className="text-[10px] text-destructive uppercase font-bold mt-2 text-center">{decodeForm.formState.errors.image.message}</p>}
                 </div>
               </div>
 
@@ -183,6 +195,18 @@ export function TextStegoPanel() {
                 </div>
               </div>
             </div>
+
+            {submitMutation.isError && (
+              <div className="bg-destructive/10 border-l-2 border-destructive p-3 flex items-start gap-3">
+                <AlertCircle className="size-4 text-destructive shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="text-[10px] font-black text-destructive uppercase tracking-widest">Extraction_Halt</p>
+                  <p className="text-[9px] text-destructive/80 font-bold uppercase leading-tight">
+                    {((submitMutation.error as any)?.response?.data?.error) || "SYSTEM_TASK_FAILURE: UNKNOWN_EXCEPTION"}
+                  </p>
+                </div>
+              </div>
+            )}
 
             <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-black font-black uppercase h-12" disabled={submitMutation.isPending}>
               {submitMutation.isPending ? 'EXTRACTING_PAYLOAD...' : 'Run_Extraction'}

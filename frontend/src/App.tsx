@@ -1,4 +1,4 @@
-import { ShieldCheck, Activity, Terminal, AlertTriangle, Ghost } from 'lucide-react'
+import { ShieldCheck, Activity, Terminal, AlertTriangle, Ghost, ScanEye } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 
 import { ThemeToggle } from '@/components/theme-toggle'
@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AudioStegoPanel } from '@/features/audio-stego-panel'
 import { ImageStegoPanel } from '@/features/image-stego-panel'
+import { SignalAnalysisPanel } from '@/features/signal-analysis-panel'
 import { TaskDashboard } from '@/features/task-dashboard'
 import { TextStegoPanel } from '@/features/text-stego-panel'
 import { pixelGhostApi } from '@/lib/api/pixelGhost'
@@ -92,6 +93,10 @@ function App() {
                       <Activity className="size-3 mr-2" />
                       AUDIO_ENC
                     </TabsTrigger>
+                    <TabsTrigger value="analysis" className="data-[state=active]:bg-primary data-[state=active]:text-black rounded-none border-r border-primary/20">
+                      <ScanEye className="size-3 mr-2" />
+                      SIGNAL_ANALYSIS
+                    </TabsTrigger>
                   </TabsList>
 
                   <div className="p-6">
@@ -105,6 +110,10 @@ function App() {
 
                     <TabsContent value="audio" className="mt-0">
                       <AudioStegoPanel />
+                    </TabsContent>
+
+                    <TabsContent value="analysis" className="mt-0">
+                      <SignalAnalysisPanel />
                     </TabsContent>
                   </div>
                 </Tabs>

@@ -70,4 +70,6 @@ export const pixelGhostApi = {
     })
     return data
   },
+
+  analyzeBitPlane: (image: File, bit: number) => postTask('/analyze/bit-plane', { image, bit: bit.toString() }),
 }

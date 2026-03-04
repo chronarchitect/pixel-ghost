@@ -218,6 +218,7 @@ class ImageInImageLSBRandomEnc(SteganographyBase):
             print(
                 f"Successfully embedded encrypted secret image. Stego image saved to: {output_path}"
             )
+            return output_path
 
         except Exception as e:
             raise ValueError(f"Error during encoding: {str(e)}")
@@ -319,6 +320,33 @@ class ImageInImageLSBRandomEnc(SteganographyBase):
             if isinstance(e, RuntimeError):
                 raise e
             raise ValueError(f"Error during decoding: {str(e)}")
+
+    def check_capacity(self, cover_image_path, secret_image_path):
+        """
+        Check if the secret image can fit in the cover image.
+        Returns (can_fit, required_positions, available_positions)
+        """
+        cover_image = Image.open(cover_image_path).convert("RGB")
+        secret_image = Image.open(secret_image_path).convert("RGB")
+        
+        cover_width, cover_height = cover_image.size
+        secret_width, secret_height = secret_image.size
+        
+        # Serialize to estimate length
+        secret_array = np.array(secret_image)
+        serialized_data = self._serialize_image_data(secret_array)
+        
+        # Estimate encrypted data length (Fernet uses base64 and blocks)
+        # Length after Fernet encryption is roughly: 
+        # ((input_length + 16) // 16 + 1) * 16 + 57
+        input_len = len(serialized_data)
+        encrypted_len = ((input_len + 16) // 16 + 1) * 16 + 57
+        
+        data_length_bits = encrypted_len * 8
+        required_positions = 32 + data_length_bits
+        available_positions = cover_width * cover_height * 3
+        
+        return required_positions <= available_positions, required_positions, available_positions
 
     def calculate_capacity(self, cover_image_path):
         """

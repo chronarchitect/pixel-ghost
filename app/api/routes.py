@@ -8,6 +8,7 @@ from steganography.image_in_image.lsb import ImageInImageLSB
 from steganography.image_in_image.lsb_random import ImageInImageLSBRandom
 from steganography.image_in_image.lsb_random_enc import ImageInImageLSBRandomEnc
 from steganography.text_in_audio.lsb import AudioLSB
+from core.analysis import extract_bit_plane
 from tasks import TaskQueueManager
 import shutil
 import uuid
@@ -32,6 +33,25 @@ async def list_all_tasks():
         return JSONResponse(content={"tasks": tasks}, status_code=200)
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)
+
+@router.post("/analyze/bit-plane")
+async def analyze_bit_plane(
+    image: UploadFile = File(...),
+    bit: int = Form(0)
+):
+    """Analyze and extract a specific bit plane for noise visualization."""
+    input_path = f"/tmp/analysis_input_{uuid.uuid4()}.png"
+    
+    try:
+        with open(input_path, "wb") as buffer:
+            shutil.copyfileobj(image.file, buffer)
+            
+        task_id = TaskQueueManager.submit_task(extract_bit_plane, input_path, bit=bit)
+        return JSONResponse(content={"task_id": task_id}, status_code=202)
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+    finally:
+        image.file.close()
 
 # Task status endpoint
 @router.get("/task/status/{task_id}")
@@ -128,6 +148,16 @@ async def encode_text_in_image(
     try:
         with open(input_path, "wb") as buffer:
             shutil.copyfileobj(image.file, buffer)
+
+        # Early capacity check
+        can_fit, required, available = steg.check_capacity(input_path, message)
+        if not can_fit:
+            return JSONResponse(
+                content={
+                    "error": f"Message is too long. Required: {required} bits, Available: {available} bits"
+                },
+                status_code=400,
+            )
 
         # steg.encode(input_path, message, output_path)
         task_id = TaskQueueManager.submit_task(
@@ -308,16 +338,22 @@ async def encode_image_in_image(
         with open(secret_path, "wb") as buffer:
             shutil.copyfileobj(secret_image.file, buffer)
 
-        # Encode secret image into cover image
-        # steg.encode(cover_path, secret_path, output_path)
-        task_id = TaskQueueManager.submit_task(steg.encode, cover_path, secret_path, output_path)
+        # Early capacity check
+        can_fit, required, available = steg.check_capacity(cover_path, secret_path)
+        if not can_fit:
+            return JSONResponse(
+                content={
+                    "error": f"Secret image is too large. Required: {required} bits, Available: {available} bits"
+                },
+                status_code=400,
+            )
 
-        # Return the task ID for tracking
+        # Encode secret image into cover image
+        task_id = TaskQueueManager.submit_task(steg.encode, cover_path, secret_path, output_path)
         return JSONResponse(content={"task_id": task_id}, status_code=202)
 
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)
-
     finally:
         cover_image.file.close()
         secret_image.file.close()
@@ -370,15 +406,22 @@ async def encode_image_in_image_random(
         with open(secret_path, "wb") as buffer:
             shutil.copyfileobj(secret_image.file, buffer)
 
+        # Early capacity check
+        can_fit, required, available = steg.check_capacity(cover_path, secret_path)
+        if not can_fit:
+            return JSONResponse(
+                content={
+                    "error": f"Secret image is too large for random distribution. Required positions: {required}, Available: {available}"
+                },
+                status_code=400,
+            )
+
         # Encode secret image into cover image
         task_id = TaskQueueManager.submit_task(steg.encode, cover_path, secret_path, output_path)
-
-        # Return the task ID for tracking
         return JSONResponse(content={"task_id": task_id}, status_code=202)
 
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)
-
     finally:
         cover_image.file.close()
         secret_image.file.close()
@@ -431,15 +474,22 @@ async def encode_image_in_image_encrypted(
         with open(secret_path, "wb") as buffer:
             shutil.copyfileobj(secret_image.file, buffer)
 
+        # Early capacity check
+        can_fit, required, available = steg.check_capacity(cover_path, secret_path)
+        if not can_fit:
+            return JSONResponse(
+                content={
+                    "error": f"Encrypted secret image is too large. Required bits: {required}, Available: {available}"
+                },
+                status_code=400,
+            )
+
         # Encode and encrypt secret image into cover image
         task_id = TaskQueueManager.submit_task(steg.encode, cover_path, secret_path, output_path)
-
-        # Return the task ID for tracking
         return JSONResponse(content={"task_id": task_id}, status_code=202)
 
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)
-
     finally:
         cover_image.file.close()
         secret_image.file.close()
@@ -491,16 +541,20 @@ async def dct_encode_image(
         with open(secret_path, "wb") as buffer:
             shutil.copyfileobj(secret_image.file, buffer)
 
-        # Encode secret image into cover image
-        # steg.encode(cover_path, secret_path, output_path)
-        task_id = TaskQueueManager.submit_task(steg.encode, cover_path, secret_path, output_path)
+        # Early capacity check (DCT implementation handles internal resizing but has limits)
+        can_fit, _, _ = steg.check_capacity(cover_path, secret_path)
+        if not can_fit:
+            return JSONResponse(
+                content={"error": "Images must be at least 8x8 pixels for DCT processing"},
+                status_code=400,
+            )
 
-        # Return the task ID for tracking
+        # Encode secret image into cover image
+        task_id = TaskQueueManager.submit_task(steg.encode, cover_path, secret_path, output_path)
         return JSONResponse(content={"task_id": task_id}, status_code=202)
 
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)
-
     finally:
         cover_image.file.close()
         secret_image.file.close()

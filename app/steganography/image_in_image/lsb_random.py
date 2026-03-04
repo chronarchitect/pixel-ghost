@@ -150,6 +150,7 @@ class ImageInImageLSBRandom(SteganographyBase):
             print(
                 f"Successfully embedded secret image using random positions. Stego image saved to: {output_path}"
             )
+            return output_path
 
         except Exception as e:
             raise ValueError(f"Error during encoding: {str(e)}")
@@ -265,6 +266,26 @@ class ImageInImageLSBRandom(SteganographyBase):
             if isinstance(e, RuntimeError):
                 raise e
             raise ValueError(f"Error during decoding: {str(e)}")
+
+    def check_capacity(self, cover_image_path, secret_image_path):
+        """
+        Check if the secret image can fit in the cover image.
+        Returns (can_fit, required_positions, available_positions)
+        """
+        cover_image = Image.open(cover_image_path)
+        secret_image = Image.open(secret_image_path)
+        
+        cover_width, cover_height = cover_image.size
+        secret_width, secret_height = secret_image.size
+        
+        cover_pixels = cover_width * cover_height * 3  # 3 color channels
+        secret_pixels = secret_width * secret_height * 3  # 3 color channels
+        
+        # We need space for secret image dimensions (2 * 32 bits) + secret image data (8 bits per channel)
+        required_positions = 64 + (secret_pixels * 8)
+        available_positions = cover_pixels
+        
+        return required_positions <= available_positions, required_positions, available_positions
 
     def calculate_capacity(self, cover_image_path):
         """

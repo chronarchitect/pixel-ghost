@@ -193,6 +193,26 @@ class ImageInImageLSB(SteganographyBase):
                 raise e
             raise ValueError(f"Error during decoding: {str(e)}")
 
+    def check_capacity(self, cover_image_path, secret_image_path):
+        """
+        Check if the secret image can fit in the cover image.
+        Returns (can_fit, required_bits, available_bits)
+        """
+        cover_image = Image.open(cover_image_path)
+        secret_image = Image.open(secret_image_path)
+        
+        cover_width, cover_height = cover_image.size
+        secret_width, secret_height = secret_image.size
+        
+        cover_pixels = cover_width * cover_height
+        secret_pixels = secret_width * secret_height
+        
+        # We need space for secret image dimensions (2 * 32 bits) + secret image data (24 bits per RGB pixel)
+        required_bits = 64 + (secret_pixels * 24)
+        available_bits = cover_pixels * 3  # 3 color channels, 1 bit each
+        
+        return required_bits <= available_bits, required_bits, available_bits
+
     def calculate_capacity(self, cover_image_path):
         """
         Calculate the maximum size of secret image that can be embedded.

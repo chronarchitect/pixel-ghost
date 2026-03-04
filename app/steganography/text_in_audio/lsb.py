@@ -51,7 +51,7 @@ class AudioLSB(SteganographyBase):
 
                 # Each sample can hide 1 bit in its LSB
                 # We need 8 bits per character + delimiter
-                delimiter_bits = len(self.delimiter) * 8
+                delimiter_bits = len(self.delimiter.encode("utf-8")) * 8
                 available_bits = total_samples - delimiter_bits
                 max_characters = available_bits // 8
 
@@ -69,34 +69,16 @@ class AudioLSB(SteganographyBase):
         except Exception as e:
             raise Exception(f"Error calculating capacity: {str(e)}")
 
-    def _text_to_binary(self, text):
-        """
-        Convert text to binary representation.
-
-        Args:
-            text (str): Text to convert
-
-        Returns:
-            str: Binary representation of the text
-        """
-        return "".join(format(ord(char), "08b") for char in text)
-
-    def _binary_to_text(self, binary_data):
-        """
-        Convert binary data back to text.
-
-        Args:
-            binary_data (str): Binary string to convert
-
-        Returns:
-            str: Converted text
-        """
-        text = ""
-        for i in range(0, len(binary_data), 8):
-            byte = binary_data[i : i + 8]
-            if len(byte) == 8:
-                text += chr(int(byte, 2))
-        return text
+    def _to_bin(self, data):
+        """Convert data to binary format as string."""
+        if isinstance(data, str):
+            data = data.encode("utf-8")
+        if isinstance(data, (bytes, bytearray)):
+            return "".join(format(i, "08b") for i in data)
+        elif isinstance(data, int):
+            return format(data, "08b")
+        else:
+            raise TypeError("Unsupported data type.")
 
     def _embed_bit_in_sample(self, sample, bit):
         """
@@ -141,7 +123,7 @@ class AudioLSB(SteganographyBase):
         try:
             # Add delimiter to mark end of message
             full_message = message + self.delimiter
-            message_binary = self._text_to_binary(full_message)
+            message_binary = self._to_bin(full_message)
 
             # Read the original audio file
             with wave.open(input_path, "rb") as audio:
@@ -150,20 +132,18 @@ class AudioLSB(SteganographyBase):
 
             # Convert audio data to numpy array
             if params.sampwidth == 1:
-                dtype = np.uint8
                 format_char = "B"
             elif params.sampwidth == 2:
-                dtype = np.int16
                 format_char = "h"
             elif params.sampwidth == 4:
-                dtype = np.int32
                 format_char = "i"
             else:
                 raise ValueError(f"Unsupported sample width: {params.sampwidth}")
 
             # Unpack audio data
+            num_samples = len(frames) // params.sampwidth
             audio_data = list(
-                struct.unpack(f"{len(frames)//params.sampwidth}{format_char}", frames)
+                struct.unpack(f"{num_samples}{format_char}", frames)
             )
 
             # Check if we have enough capacity
@@ -189,10 +169,14 @@ class AudioLSB(SteganographyBase):
             return output_path
 
         except Exception as e:
-            # Clean up output file on error, but keep input file
+            # Clean up output file on error
             if os.path.exists(output_path):
                 os.remove(output_path)
             raise Exception(f"Encoding failed: {str(e)}")
+        finally:
+            # Clean up input file if it was a temporary file
+            if "temp_audio_" in input_path and os.path.exists(input_path):
+                os.remove(input_path)
 
     def decode(self, input_path):
         """
@@ -212,20 +196,18 @@ class AudioLSB(SteganographyBase):
 
             # Convert audio data to numpy array
             if params.sampwidth == 1:
-                dtype = np.uint8
                 format_char = "B"
             elif params.sampwidth == 2:
-                dtype = np.int16
                 format_char = "h"
             elif params.sampwidth == 4:
-                dtype = np.int32
                 format_char = "i"
             else:
                 raise ValueError(f"Unsupported sample width: {params.sampwidth}")
 
             # Unpack audio data
+            num_samples = len(frames) // params.sampwidth
             audio_data = list(
-                struct.unpack(f"{len(frames)//params.sampwidth}{format_char}", frames)
+                struct.unpack(f"{num_samples}{format_char}", frames)
             )
 
             # Extract bits from LSBs
@@ -233,8 +215,18 @@ class AudioLSB(SteganographyBase):
             for sample in audio_data:
                 extracted_bits += self._extract_bit_from_sample(sample)
 
-            # Convert bits to text
-            extracted_text = self._binary_to_text(extracted_bits)
+            # Convert bits to bytes
+            bytes_data = bytearray()
+            for i in range(0, len(extracted_bits), 8):
+                byte = extracted_bits[i : i + 8]
+                if len(byte) == 8:
+                    bytes_data.append(int(byte, 2))
+            
+            # Convert bytes to text
+            try:
+                extracted_text = bytes_data.decode("utf-8", errors="replace")
+            except Exception:
+                extracted_text = bytes_data.decode("latin-1", errors="replace")
 
             # Find the delimiter to get the actual message
             if self.delimiter in extracted_text:
@@ -245,6 +237,10 @@ class AudioLSB(SteganographyBase):
 
         except Exception as e:
             raise Exception(f"Decoding failed: {str(e)}")
+        finally:
+            # Clean up input file if it was a temporary file
+            if "temp_stego_audio_" in input_path and os.path.exists(input_path):
+                os.remove(input_path)
 
     def validate_audio_file(self, audio_path):
         """

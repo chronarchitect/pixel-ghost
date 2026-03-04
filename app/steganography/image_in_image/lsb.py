@@ -101,6 +101,7 @@ class ImageInImageLSB(SteganographyBase):
             print(
                 f"Successfully embedded secret image. Stego image saved to: {output_path}"
             )
+            return output_path
 
         except Exception as e:
             raise ValueError(f"Error during encoding: {str(e)}")

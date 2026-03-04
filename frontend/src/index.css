@@ -1,0 +1,137 @@
+@import 'tailwindcss';
+
+:root {
+  /* Industrial Amber Palette */
+  --background: #080808;
+  --foreground: #ffb000; /* Amber Text */
+  --card: #121212;
+  --card-foreground: #ffb000;
+  --primary: #ff6600; /* International Orange */
+  --primary-foreground: #000000;
+  --secondary: #331a00; /* Dark Rust */
+  --secondary-foreground: #ffb000;
+  --muted: #1a1a1a;
+  --muted-foreground: #885500;
+  --accent: #ffb000;
+  --accent-foreground: #000000;
+  --success: #00ffcc; /* Cyan safe state */
+  --success-foreground: #000000;
+  --destructive: #ff0000; /* ALERT RED */
+  --border: #331a00;
+  --input: #1a1a1a;
+  --ring: #ff6600;
+}
+
+.dark {
+  /* Default mode for system dashboard */
+  --background: #050505;
+  --foreground: #ffb000;
+  --card: #0c0c0c;
+  --card-foreground: #ffb000;
+  --primary: #ff6600;
+  --primary-foreground: #000000;
+  --secondary: #221100;
+  --secondary-foreground: #ffb000;
+  --muted: #121212;
+  --muted-foreground: #885500;
+  --accent: #ffb000;
+  --accent-foreground: #000000;
+  --success: #00ffcc;
+  --success-foreground: #000000;
+  --destructive: #ff0000;
+  --border: #442200;
+  --input: #121212;
+  --ring: #ff6600;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
+* {
+  @apply border-border;
+  border-radius: 0 !important; /* Sharp corners for industrial feel */
+}
+
+body {
+  @apply bg-background text-foreground antialiased font-mono;
+  /* Honeycomb Hexagon Background */
+  background-image: 
+    radial-gradient(circle at center, rgba(255, 102, 0, 0.03) 0%, transparent 70%),
+    linear-gradient(30deg, #080808 12%, transparent 12.5%, transparent 87%, #080808 87.5%, #080808),
+    linear-gradient(150deg, #080808 12%, transparent 12.5%, transparent 87%, #080808 87.5%, #080808),
+    linear-gradient(30deg, #080808 12%, transparent 12.5%, transparent 87%, #080808 87.5%, #080808),
+    linear-gradient(150deg, #080808 12%, transparent 12.5%, transparent 87%, #080808 87.5%, #080808),
+    linear-gradient(60deg, #121212 25%, transparent 25.5%, transparent 75%, #121212 75.5%, #121212),
+    linear-gradient(60deg, #121212 25%, transparent 25.5%, transparent 75%, #121212 75.5%, #121212);
+  background-size: 80px 140px;
+}
+
+[data-slot="tabs-list"] {
+  @apply bg-black p-0 border-b border-primary/50 flex gap-0;
+}
+
+[data-slot="tabs-trigger"] {
+  @apply data-[state=active]:bg-primary data-[state=active]:text-black border-r border-primary/20 transition-none uppercase tracking-tighter text-[10px] h-8 px-4;
+}
+
+.card-header-gradient {
+  background: #1a0f00;
+  border-left: 4px solid var(--primary);
+  position: relative;
+}
+
+.card-header-gradient::after {
+  content: "PG-OS // TERMINAL_ACTIVE";
+  position: absolute;
+  top: 2px;
+  right: 6px;
+  font-size: 8px;
+  opacity: 0.5;
+  letter-spacing: 1px;
+}
+
+.scanline {
+  position: relative;
+  overflow: hidden;
+}
+
+.scanline::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(rgba(255, 102, 0, 0.03) 50%, transparent 50%);
+  background-size: 100% 4px;
+  pointer-events: none;
+}
+
+/* NERV Emergency Style Alert */
+.emergency-alert {
+  background: repeating-linear-gradient(
+    45deg,
+    #ff6600,
+    #ff6600 10px,
+    #000000 10px,
+    #000000 20px
+  );
+}

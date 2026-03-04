@@ -10,7 +10,6 @@ python-dotenv
 aiofiles
 opencv-python-headless
 cryptography
-opencv-python-headless
 
 # Testing dependencies
 pytest

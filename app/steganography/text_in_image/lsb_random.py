@@ -53,8 +53,8 @@ class LSBRandom(SteganographyBase):
     def to_bin(self, data):
         """Convert data to binary format as string."""
         if isinstance(data, str):
-            return "".join(format(ord(i), "08b") for i in data)
-        elif isinstance(data, bytes) or isinstance(data, bytearray):
+            data = data.encode("utf-8")
+        if isinstance(data, (bytes, bytearray)):
             return "".join(format(i, "08b") for i in data)
         elif isinstance(data, int):
             return format(data, "08b")
@@ -172,8 +172,12 @@ class LSBRandom(SteganographyBase):
         for pos in pixel_positions:
             binary_data += str(flat_pixels[pos] & 1)
 
-        # Convert every 8 bits to a character
-        chars = [
-            chr(int(binary_data[i : i + 8], 2)) for i in range(0, len(binary_data), 8)
-        ]
-        return "".join(chars)
+        # Convert every 8 bits to a byte
+        bytes_data = bytearray()
+        for i in range(0, len(binary_data), 8):
+            bytes_data.append(int(binary_data[i : i + 8], 2))
+        
+        try:
+            return bytes_data.decode("utf-8", errors="replace")
+        except Exception:
+            return bytes_data.decode("latin-1", errors="replace")

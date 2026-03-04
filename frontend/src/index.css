@@ -1,7 +1,7 @@
 @import 'tailwindcss';
 
 :root {
-  /* MAGI System Palette - NERV Standard */
+  /* Industrial Amber Palette */
   --background: #080808;
   --foreground: #ffb000; /* Amber Text */
   --card: #121212;
@@ -23,7 +23,7 @@
 }
 
 .dark {
-  /* Dark mode is the only mode for NERV */
+  /* Default mode for system dashboard */
   --background: #050505;
   --foreground: #ffb000;
   --card: #0c0c0c;
@@ -99,7 +99,7 @@ body {
 }
 
 .card-header-gradient::after {
-  content: "MAGI-01 MELCHIOR // LOGGED IN";
+  content: "PG-OS // TERMINAL_ACTIVE";
   position: absolute;
   top: 2px;
   right: 6px;

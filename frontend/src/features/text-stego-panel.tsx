@@ -51,7 +51,7 @@ export function TextStegoPanel() {
       }
     },
     onSuccess: (data) => {
-      alert(`[MAGI_SIGNAL] TASK_ACCEPTED: ${data.task_id}`)
+      alert(`[SYSTEM_SIGNAL] TASK_ACCEPTED: ${data.task_id}`)
     },
     onError: (error: any) => {
       alert(`[CRITICAL_FAILURE] ${error.response?.data?.error || error.message}`)

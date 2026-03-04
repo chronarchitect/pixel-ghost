@@ -1,4 +1,4 @@
-import { ShieldCheck, Activity, Terminal, AlertTriangle } from 'lucide-react'
+import { ShieldCheck, Activity, Terminal, AlertTriangle, Ghost } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 
 import { ThemeToggle } from '@/components/theme-toggle'
@@ -11,6 +11,19 @@ import { TaskDashboard } from '@/features/task-dashboard'
 import { TextStegoPanel } from '@/features/text-stego-panel'
 import { pixelGhostApi } from '@/lib/api/pixelGhost'
 
+function PixelGhostIcon() {
+  return (
+    <div className="relative size-10 bg-primary flex items-center justify-center p-1 shadow-[0_0_15px_rgba(255,102,0,0.5)]">
+      <div className="size-full bg-black flex items-center justify-center">
+        <Ghost className="size-6 text-primary" strokeWidth={3} />
+      </div>
+      {/* Decorative pixel corners */}
+      <div className="absolute -top-1 -left-1 size-2 bg-primary"></div>
+      <div className="absolute -bottom-1 -right-1 size-2 bg-primary"></div>
+    </div>
+  )
+}
+
 function App() {
   const healthQuery = useQuery({
     queryKey: ['health'],
@@ -19,33 +32,30 @@ function App() {
   })
 
   return (
-    <main className="min-h-screen bg-background text-foreground selection:bg-primary selection:text-black">
+    <main className="min-h-screen bg-background text-foreground selection:bg-primary selection:text-black font-mono">
       <div className="mx-auto w-full max-w-7xl px-0 py-0 sm:px-4 sm:py-8">
-        {/* NERV STYLE HEADER */}
+        {/* PIXEL-GHOST INDUSTRIAL HEADER */}
         <header className="card-header-gradient scanline flex flex-col gap-4 border-b-2 border-primary bg-black/80 p-6 sm:flex-row sm:items-center sm:justify-between text-primary backdrop-blur-md">
-          <div className="flex items-center gap-4">
-            <div className="flex flex-col items-center border-2 border-primary p-2 leading-none">
-              <span className="text-[10px] font-black">MAGI</span>
-              <span className="text-xl font-black">01</span>
-            </div>
+          <div className="flex items-center gap-5">
+            <PixelGhostIcon />
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-4xl font-black tracking-tighter uppercase italic">MAGI // PIXELGHOST</h1>
+                <h1 className="text-4xl font-black tracking-tighter uppercase italic">PIXEL-GHOST</h1>
                 <Activity className="size-5 animate-pulse text-success" />
               </div>
-              <p className="text-[10px] tracking-[0.3em] uppercase opacity-60 font-bold">Terminal Access Level: 1-A // Security Override Enabled</p>
+              <p className="text-[10px] tracking-[0.3em] uppercase opacity-60 font-bold">Encrypted Data Injection Interface // SECURE_NODE_01</p>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex flex-col items-end gap-1">
               <div className="flex items-center gap-2">
-                 <span className="text-[10px] font-bold uppercase opacity-50">Consensus:</span>
-                 <span className="text-xs font-black text-success">66.6% PROBABILITY</span>
+                 <span className="text-[10px] font-bold uppercase opacity-50">Signal_Strength:</span>
+                 <span className="text-xs font-black text-success">STABLE // 99.9%</span>
               </div>
               <Badge variant={healthQuery.isSuccess ? 'success' : 'danger'} className="px-4 py-0.5 text-[10px] border-none">
                 <ShieldCheck className="mr-1.5 size-3" />
-                {healthQuery.isSuccess ? 'LINK ESTABLISHED' : 'CODE BLUE // OFFLINE'}
+                {healthQuery.isSuccess ? 'ENCRYPTION_LINK_ACTIVE' : 'INTERFACE_OFFLINE'}
               </Badge>
             </div>
             <div className="border-l border-primary/30 pl-4">
@@ -58,7 +68,7 @@ function App() {
         {!healthQuery.isSuccess && !healthQuery.isLoading && (
           <div className="emergency-alert h-10 flex items-center justify-center gap-4 text-black font-black text-sm animate-pulse">
             <AlertTriangle className="size-5" />
-            CRITICAL SYSTEM ERROR // RE-ESTABLISH MAGI LINK IMMEDIATELY
+            CONNECTION_FAILURE // SYSTEM_INTEGRITY_COMPROMISED
             <AlertTriangle className="size-5" />
           </div>
         )}

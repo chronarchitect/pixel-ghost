@@ -1,8 +1,9 @@
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { z } from 'zod'
-import { ScanEye, Activity } from 'lucide-react'
+import { ScanEye, Activity, Loader2, Maximize2, Download } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -17,6 +18,8 @@ const analysisSchema = z.object({
 type AnalysisValues = z.infer<typeof analysisSchema>
 
 export function SignalAnalysisPanel() {
+  const [activeTaskId, setActiveTaskId] = useState<string | null>(null)
+  
   const form = useForm<AnalysisValues>({
     resolver: zodResolver(analysisSchema),
     defaultValues: { bit: '0' },
@@ -28,14 +31,31 @@ export function SignalAnalysisPanel() {
       return pixelGhostApi.analyzeBitPlane(values.image, bitNum)
     },
     onSuccess: (data) => {
-      alert(`[SIGNAL_ANALYSIS] TASK_QUEUED: ${data.task_id}\n\nTrack this task in the monitor to download the visualization.`)
+      setActiveTaskId(data.task_id)
     },
     onError: (error: any) => {
       alert(`[ANALYSIS_FAILURE] ${error.response?.data?.error || error.message}`)
     },
   })
 
-  const onAnalyze = (values: AnalysisValues) => submitMutation.mutate(values)
+  // Poll for status of the active task
+  const statusQuery = useQuery({
+    queryKey: ['analysis-status', activeTaskId],
+    queryFn: () => pixelGhostApi.getTaskStatus(activeTaskId!),
+    enabled: !!activeTaskId,
+    refetchInterval: (query) => {
+      const status = query.state.data?.status
+      return status === 'completed' || status === 'failed' ? false : 1000
+    },
+  })
+
+  const onAnalyze = (values: AnalysisValues) => {
+    setActiveTaskId(null)
+    submitMutation.mutate(values)
+  }
+
+  const isProcessing = !!submitMutation.isPending || !!(statusQuery.data?.status && !['completed', 'failed'].includes(statusQuery.data.status as string))
+  const isCompleted = statusQuery.data?.status === 'completed'
 
   return (
     <div className="space-y-0">
@@ -47,24 +67,25 @@ export function SignalAnalysisPanel() {
         <span className="text-[10px] font-bold opacity-40">ANALYSIS_MODE: BIT_PLANE_ISOLATION</span>
       </div>
 
-      <div className="max-w-2xl mx-auto">
-        <div className="bg-primary/5 border border-primary/20 p-6 space-y-6">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-[10px] font-black uppercase text-primary/60 mb-2">
-              <Activity className="size-3" />
-              Scanner_Configuration
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        {/* Left: Controls */}
+        <div className="space-y-6">
+          <div className="bg-primary/5 border border-primary/20 p-6 space-y-6">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-[10px] font-black uppercase text-primary/60 mb-2">
+                <Activity className="size-3" />
+                Scanner_Configuration
+              </div>
+              <p className="text-[10px] uppercase font-bold opacity-50 leading-relaxed mb-4">
+                Bit 0 (LSB) usually contains hidden noise patterns. <br/>
+                High bits (7) reveal raw visual geometry.
+              </p>
             </div>
-            <p className="text-xs opacity-70 leading-relaxed mb-4">
-              Select a bit plane to isolate. Bit 0 (Least Significant Bit) is commonly used for hidden data. 
-              Higher bits (7) contain more visual information of the original image.
-            </p>
-          </div>
 
-          <form onSubmit={form.handleSubmit(onAnalyze)} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <form onSubmit={form.handleSubmit(onAnalyze)} className="space-y-6">
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label className="text-[10px] uppercase font-black opacity-60">Source_Image</Label>
+                  <Label className="text-[10px] uppercase font-black opacity-60">Source_Buffer</Label>
                   <Input
                     type="file"
                     accept="image/*"
@@ -75,14 +96,12 @@ export function SignalAnalysisPanel() {
                     }}
                   />
                 </div>
-              </div>
 
-              <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label className="text-[10px] uppercase font-black opacity-60">Target_Bit_Plane (0-7)</Label>
-                  <div className="flex gap-2 flex-wrap">
+                  <Label className="text-[10px] uppercase font-black opacity-60">Target_Plane</Label>
+                  <div className="grid grid-cols-4 gap-2">
                     {['0', '1', '2', '3', '4', '5', '6', '7'].map((b) => (
-                      <label key={b} className="flex-1 min-w-[40px]">
+                      <label key={b}>
                         <input
                           type="radio"
                           value={b}
@@ -97,16 +116,93 @@ export function SignalAnalysisPanel() {
                   </div>
                 </div>
               </div>
-            </div>
 
-            <Button 
-              type="submit" 
-              className="w-full bg-primary hover:bg-primary/90 text-black font-black uppercase h-12 shadow-[0_0_15px_rgba(255,102,0,0.3)]" 
-              disabled={submitMutation.isPending}
-            >
-              {submitMutation.isPending ? 'SCANNING_SIGNAL...' : 'Initiate_Signal_Scan'}
-            </Button>
-          </form>
+              <Button 
+                type="submit" 
+                className="w-full bg-primary hover:bg-primary/90 text-black font-black uppercase h-12 shadow-[0_0_15px_rgba(255,102,0,0.3)]" 
+                disabled={isProcessing}
+              >
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="size-4 mr-2 animate-spin" />
+                    Scanning_Signal...
+                  </>
+                ) : 'Initiate_Signal_Scan'}
+              </Button>
+            </form>
+          </div>
+        </div>
+
+        {/* Right: Live Preview */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between text-[10px] font-black uppercase text-primary/60 px-1">
+            <div className="flex items-center gap-2">
+              <Maximize2 className="size-3" />
+              Visualization_Output
+            </div>
+            {isCompleted && (
+              <a 
+                href={pixelGhostApi.taskResultUrl(activeTaskId!)} 
+                target="_blank" 
+                rel="noreferrer"
+                className="hover:text-primary transition-colors flex items-center gap-1"
+              >
+                <Download className="size-3" />
+                Export_Frame
+              </a>
+            )}
+          </div>
+
+          <div className="aspect-square w-full bg-black border-2 border-primary/20 relative flex items-center justify-center overflow-hidden">
+            {/* Scanline overlay for preview */}
+            <div className="absolute inset-0 pointer-events-none z-10 opacity-20 bg-[linear-gradient(rgba(255,102,0,0.1)_50%,transparent_50%)] bg-[length:100%_4px]"></div>
+            
+            {!activeTaskId && !isProcessing && (
+              <div className="text-center space-y-2 opacity-20">
+                <ScanEye className="size-12 mx-auto mb-4" />
+                <p className="text-[10px] font-black uppercase tracking-widest">No_Data_Detected</p>
+                <p className="text-[8px] uppercase">Upload image to begin scan</p>
+              </div>
+            )}
+
+            {isProcessing && (
+              <div className="text-center space-y-4 z-20">
+                <div className="size-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto shadow-[0_0_20px_rgba(255,102,0,0.4)]"></div>
+                <div className="space-y-1">
+                  <p className="text-xs font-black uppercase animate-pulse">Analyzing_Noise_Pattern...</p>
+                  <p className="text-[8px] font-mono opacity-50">{activeTaskId}</p>
+                </div>
+              </div>
+            )}
+
+            {isCompleted && activeTaskId && (
+              <img 
+                src={pixelGhostApi.taskResultUrl(activeTaskId)} 
+                alt="Bit plane visualization" 
+                className="size-full object-contain image-pixelated"
+                onLoad={() => {
+                  // Optional: trigger some "Scan Complete" animation
+                }}
+              />
+            )}
+
+            {statusQuery.data?.status === 'failed' && (
+              <div className="text-destructive text-center p-6 space-y-2">
+                <p className="text-xs font-black uppercase">Scan_Interrupted</p>
+                <p className="text-[8px] font-mono">ERROR: SYSTEM_TASK_FAILURE</p>
+              </div>
+            )}
+          </div>
+          
+          {isCompleted && (
+            <div className="bg-primary/10 border-l-2 border-primary p-3">
+              <p className="text-[10px] font-bold uppercase mb-1">Interpretation_Guide:</p>
+              <p className="text-[9px] opacity-70 leading-normal uppercase">
+                If the image appears as random salt-and-pepper noise, the source is likely clean. 
+                Distinct geometric patterns or high-contrast blocks in Bit 0 suggest artificial data injection.
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>

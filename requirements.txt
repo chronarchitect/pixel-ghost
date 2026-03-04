@@ -10,4 +10,9 @@ python-dotenv
 aiofiles
 opencv-python-headless
 cryptography
-opencv-python-headless
+
+# Testing dependencies
+pytest
+pytest-asyncio
+pytest-timeout
+httpx

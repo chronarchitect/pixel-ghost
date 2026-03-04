@@ -7,6 +7,7 @@ from steganography.text_in_image.lsb_random_enc import LSBRandomEnc
 from steganography.image_in_image.lsb import ImageInImageLSB
 from steganography.image_in_image.lsb_random import ImageInImageLSBRandom
 from steganography.image_in_image.lsb_random_enc import ImageInImageLSBRandomEnc
+from steganography.text_in_audio.lsb import AudioLSB
 from tasks import TaskQueueManager
 import shutil
 import uuid
@@ -14,6 +15,7 @@ import os
 
 router = APIRouter()
 TaskQueueManager.start()
+
 
 @router.get("/")
 async def read_root():
@@ -39,7 +41,27 @@ async def get_task_status(task_id: str):
     """
     try:
         status = TaskQueueManager.get_status(task_id)
-        return JSONResponse(content={"task_id": task_id, "status": status}, status_code=200)
+        
+        if status == "not_found":
+            return JSONResponse(
+                content={"task_id": task_id, "status": status}, status_code=404
+            )
+        elif status in ["queued", "processing"]:
+            return JSONResponse(
+                content={"task_id": task_id, "status": status}, status_code=202
+            )
+        elif status == "completed":
+            return JSONResponse(
+                content={"task_id": task_id, "status": status}, status_code=200
+            )
+        elif status == "failed":
+            return JSONResponse(
+                content={"task_id": task_id, "status": status}, status_code=400
+            )
+        else:
+            return JSONResponse(
+                content={"task_id": task_id, "status": status}, status_code=500
+            )
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)
 
@@ -51,21 +73,44 @@ async def get_task_result(task_id: str):
     Get the result of a completed task (e.g., download the output file).
     """
     try:
-        result = TaskQueueManager.get_result(task_id)
-        # If result is a file path, return it as a file response
-        if isinstance(result, str):
-            # Try to return as file if file exists
-            try:
-                # check if file exists
-                if not os.path.exists(result):
-                    raise FileNotFoundError(f"File {result} not found.")
-                return FileResponse(path=result, filename=result.split("/")[-1])
-            except Exception:
-                # If not a file, return as plain text
+        # Check task status first
+        status = TaskQueueManager.get_status(task_id)
+
+        if status == "not_found":
+            return JSONResponse(content={"error": "Task not found"}, status_code=404)
+        elif status == "queued":
+            return JSONResponse(
+                content={"error": "Task is still queued"}, status_code=202
+            )
+        elif status == "processing":
+            return JSONResponse(
+                content={"error": "Task is still processing"}, status_code=202
+            )
+        elif status == "failed":
+            # Task failed, return error with 400 status code
+            result = TaskQueueManager.get_result(task_id)
+            return JSONResponse(content={"error": result}, status_code=400)
+        elif status == "completed":
+            # Task completed successfully
+            result = TaskQueueManager.get_result(task_id)
+            # If result is a file path, return it as a file response
+            if isinstance(result, str):
+                # Try to return as file if file exists
+                try:
+                    # check if file exists
+                    if not os.path.exists(result):
+                        raise FileNotFoundError(f"File {result} not found.")
+                    return FileResponse(path=result, filename=result.split("/")[-1])
+                except Exception:
+                    # If not a file, return as plain text
+                    return JSONResponse(content={"result": result}, status_code=200)
+            else:
+                # Not a file path, just return as JSON
                 return JSONResponse(content={"result": result}, status_code=200)
         else:
-            # Not a file path, just return as JSON
-            return JSONResponse(content={"result": result}, status_code=200)
+            return JSONResponse(
+                content={"error": "Unknown task status"}, status_code=500
+            )
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)
 
@@ -84,8 +129,10 @@ async def encode_text_in_image(
         with open(input_path, "wb") as buffer:
             shutil.copyfileobj(image.file, buffer)
 
-        #steg.encode(input_path, message, output_path)
-        task_id = TaskQueueManager.submit_task(steg.encode, input_path, message, output_path)
+        # steg.encode(input_path, message, output_path)
+        task_id = TaskQueueManager.submit_task(
+            steg.encode, input_path, message, output_path
+        )
 
         return JSONResponse(content={"task_id": task_id}, status_code=202)
 
@@ -94,7 +141,6 @@ async def encode_text_in_image(
 
     finally:
         image.file.close()
-
 
 
 @router.post("/text/lsb/decode")
@@ -111,7 +157,7 @@ async def decode_text_from_image(
             shutil.copyfileobj(image.file, buffer)
 
         # Decode message
-        #decoded_message = steg.decode(input_path)
+        # decoded_message = steg.decode(input_path)
         task_id = TaskQueueManager.submit_task(steg.decode, input_path)
 
         # Return the task ID for tracking
@@ -140,8 +186,10 @@ async def lsb_random_encode_text_in_image(
             shutil.copyfileobj(image.file, buffer)
 
         # Encode message
-        #output_path = steg.encode(input_path, message, output_path)
-        task_id = TaskQueueManager.submit_task(steg.encode, input_path, message, output_path)
+        # output_path = steg.encode(input_path, message, output_path)
+        task_id = TaskQueueManager.submit_task(
+            steg.encode, input_path, message, output_path
+        )
 
         return JSONResponse(content={"task_id": task_id}, status_code=202)
 
@@ -167,7 +215,7 @@ async def lsb_random_decode_text_from_image(
             shutil.copyfileobj(image.file, buffer)
 
         # Decode message
-        #decoded_message = steg.decode(input_path, key)
+        # decoded_message = steg.decode(input_path, key)
         task_id = TaskQueueManager.submit_task(steg.decode, input_path, key)
 
         # Return the task ID for tracking
@@ -196,8 +244,10 @@ async def lsb_random_enc_encode_text_in_image(
             shutil.copyfileobj(image.file, buffer)
 
         # Encode and encrypt message
-        #output_path = steg.encode(input_path, message, output_path)
-        task_id = TaskQueueManager.submit_task(steg.encode, input_path, message, output_path)
+        # output_path = steg.encode(input_path, message, output_path)
+        task_id = TaskQueueManager.submit_task(
+            steg.encode, input_path, message, output_path
+        )
 
         # Return the task ID for tracking
         return JSONResponse(content={"task_id": task_id}, status_code=202)
@@ -482,3 +532,101 @@ async def dct_decode_image(
 
     finally:
         image.file.close()
+
+
+# Audio Steganography Routes
+@router.post("/audio/lsb/encode")
+async def encode_text_in_audio(
+    audio_file: UploadFile = File(...), message: str = Form(...)
+):
+    """Encode text message into audio file using LSB steganography."""
+    audio_path = f"temp_audio_{uuid.uuid4().hex}.wav"
+    output_path = f"temp_stego_audio_{uuid.uuid4().hex}.wav"
+
+    try:
+        # Validate file type
+        if not audio_file.filename.lower().endswith(".wav"):
+            return JSONResponse(
+                content={"error": "Only WAV audio files are supported"}, status_code=400
+            )
+
+        # Save uploaded audio file
+        with open(audio_path, "wb") as buffer:
+            shutil.copyfileobj(audio_file.file, buffer)
+
+        # Create AudioLSB instance and submit task
+        audio_steg = AudioLSB()
+        task_id = TaskQueueManager.submit_task(
+            audio_steg.encode, audio_path, message, output_path
+        )
+
+        return JSONResponse(content={"task_id": task_id}, status_code=202)
+
+    except Exception as e:
+        # Clean up files on error
+        for path in [audio_path, output_path]:
+            if os.path.exists(path):
+                os.remove(path)
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+
+
+@router.post("/audio/lsb/decode")
+async def decode_text_from_audio(audio_file: UploadFile = File(...)):
+    """Decode hidden text message from audio file using LSB steganography."""
+    audio_path = f"temp_stego_audio_{uuid.uuid4().hex}.wav"
+
+    try:
+        # Validate file type
+        if not audio_file.filename.lower().endswith(".wav"):
+            return JSONResponse(
+                content={"error": "Only WAV audio files are supported"}, status_code=400
+            )
+
+        # Save uploaded audio file
+        with open(audio_path, "wb") as buffer:
+            shutil.copyfileobj(audio_file.file, buffer)
+
+        # Create AudioLSB instance and submit task
+        audio_steg = AudioLSB()
+        task_id = TaskQueueManager.submit_task(audio_steg.decode, audio_path)
+
+        return JSONResponse(content={"task_id": task_id}, status_code=202)
+
+    except Exception as e:
+        # Clean up files on error
+        if os.path.exists(audio_path):
+            os.remove(audio_path)
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+
+
+@router.post("/audio/capacity")
+async def get_audio_capacity(audio_file: UploadFile = File(...)):
+    """Calculate the text capacity of an audio file."""
+    audio_path = f"temp_capacity_audio_{uuid.uuid4().hex}.wav"
+
+    try:
+        # Validate file type
+        if not audio_file.filename.lower().endswith(".wav"):
+            return JSONResponse(
+                content={"error": "Only WAV audio files are supported"}, status_code=400
+            )
+
+        # Save uploaded audio file
+        with open(audio_path, "wb") as buffer:
+            shutil.copyfileobj(audio_file.file, buffer)
+
+        # Calculate capacity
+        audio_steg = AudioLSB()
+        capacity = audio_steg.calculate_capacity(audio_path)
+
+        # Clean up
+        if os.path.exists(audio_path):
+            os.remove(audio_path)
+
+        return JSONResponse(content={"capacity": capacity})
+
+    except Exception as e:
+        # Clean up files on error
+        if os.path.exists(audio_path):
+            os.remove(audio_path)
+        return JSONResponse(content={"error": str(e)}, status_code=500)

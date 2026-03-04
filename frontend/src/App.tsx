@@ -5,6 +5,7 @@ import { ThemeToggle } from '@/components/theme-toggle'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { AudioStegoPanel } from '@/features/audio-stego-panel'
 import { ImageStegoPanel } from '@/features/image-stego-panel'
 import { TaskDashboard } from '@/features/task-dashboard'
 import { TextStegoPanel } from '@/features/text-stego-panel'
@@ -43,9 +44,10 @@ function App() {
         <Card>
           <CardContent className="pt-6">
             <Tabs defaultValue="text" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="text">Text</TabsTrigger>
                 <TabsTrigger value="image">Image</TabsTrigger>
+                <TabsTrigger value="audio">Audio</TabsTrigger>
                 <TabsTrigger value="tasks">Tasks</TabsTrigger>
               </TabsList>
 
@@ -55,6 +57,10 @@ function App() {
 
               <TabsContent value="image">
                 <ImageStegoPanel />
+              </TabsContent>
+
+              <TabsContent value="audio">
+                <AudioStegoPanel />
               </TabsContent>
 
               <TabsContent value="tasks">

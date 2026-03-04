@@ -59,4 +59,15 @@ export const pixelGhostApi = {
 
   imageDctEncode: (cover_image: File, secret_image: File) => postTask('/image/dct/encode', { cover_image, secret_image }),
   imageDctDecode: (image: File) => postTask('/image/dct/decode', { image }),
+
+  audioLsbEncode: (audio_file: File, message: string) => postTask('/audio/lsb/encode', { audio_file, message }),
+  audioLsbDecode: (audio_file: File) => postTask('/audio/lsb/decode', { audio_file }),
+  audioCapacity: async (audio_file: File) => {
+    const { data } = await apiClient.post<{ capacity: any }>('/audio/capacity', buildFormData({ audio_file }), {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+    return data
+  },
 }

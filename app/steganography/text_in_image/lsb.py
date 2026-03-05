@@ -22,9 +22,23 @@ class LSB(SteganographyBase):
         else:
             raise TypeError("Unsupported data type.")
 
+    def check_capacity(self, image_path, message):
+        """
+        Check if the message can fit in the image.
+        Returns (can_fit, required_bits, available_bits)
+        """
+        image = Image.open(image_path).convert("RGB")
+        image_array = np.array(image)
+        available_bits = image_array.size
+        
+        message_with_delimiter = message + "###"
+        required_bits = len(message_with_delimiter.encode("utf-8")) * 8
+        
+        return required_bits <= available_bits, required_bits, available_bits
+
     def encode(self, image_path, message, output_path):
         """Encode a message into an image using LSB steganography."""
-        image = Image.open(image_path)
+        image = Image.open(image_path).convert("RGB")
         image_array = np.array(image)
         flat_pixels = image_array.flatten()
 
@@ -48,7 +62,7 @@ class LSB(SteganographyBase):
 
     def decode(self, image_path):
         """Efficiently decode an LSB hidden message from an image using NumPy."""
-        image = Image.open(image_path)
+        image = Image.open(image_path).convert("RGB")
         image_array = np.array(image)
 
         flat_pixels = image_array.flatten()

@@ -160,6 +160,13 @@ class DCT(SteganographyBase):
 
         return extracted_bits
 
+    def check_capacity(self, cover_image_path, secret_image_path):
+        """
+        DCT implementation resizes the secret image to fit, 
+        so it theoretically always 'fits' if dimensions are > 8x8.
+        """
+        return True, 0, 0
+
     def encode(self, cover_path, secret_path, output_path):
         """Embed secret image into cover image using DCT."""
         # Read cover image keeping original color space (BGR)

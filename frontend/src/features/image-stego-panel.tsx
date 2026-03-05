@@ -1,13 +1,13 @@
-import { useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
 import { z } from 'zod'
+import { Activity, AlertCircle } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { pixelGhostApi } from '@/lib/api/pixelGhost'
 
 const schema = z
@@ -22,19 +22,19 @@ const schema = z
   .superRefine((value, ctx) => {
     if (value.action === 'encode') {
       if (!value.coverImage) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Cover image is required', path: ['coverImage'] })
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Source image required', path: ['coverImage'] })
       }
       if (!value.secretImage) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Secret image is required', path: ['secretImage'] })
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Payload image required', path: ['secretImage'] })
       }
     }
 
     if (value.action === 'decode' && !value.stegoImage) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Stego image is required', path: ['stegoImage'] })
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Target buffer required', path: ['stegoImage'] })
     }
 
     if ((value.variant === 'lsb_random' || value.variant === 'lsb_random_enc') && !value.key?.trim()) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Key is required for random variants', path: ['key'] })
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Access key required', path: ['key'] })
     }
   })
 
@@ -71,108 +71,135 @@ export function ImageStegoPanel() {
       if (data.variant === 'lsb_random_enc') return pixelGhostApi.imageLsbRandomEncDecode(stegoImage, data.key ?? '')
       return pixelGhostApi.imageDctDecode(stegoImage)
     },
+    onSuccess: (data) => {
+      alert(`[SYSTEM_SIGNAL] TASK_ACCEPTED: ${data.task_id}`)
+    },
+    onError: (error: any) => {
+      // Improved error handling for capacity issues
+      const errorMessage = error.response?.data?.error || error.message
+      alert(`[CRITICAL_FAILURE] ${errorMessage}`)
+    },
   })
 
-  const title = useMemo(() => {
-    const mode = action === 'encode' ? 'Encode image-in-image' : 'Decode hidden image'
-    return `${mode} • ${variant.toUpperCase().replaceAll('_', ' ')}`
-  }, [variant, action])
-
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Image Steganography</CardTitle>
-        <CardDescription>{title}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form className="space-y-4" onSubmit={form.handleSubmit((values) => submitMutation.mutate(values))}>
-          <div className="grid gap-2 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="image-variant">Algorithm</Label>
-              <select id="image-variant" className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" {...form.register('variant')}>
-                <option value="lsb">LSB</option>
-                <option value="lsb_random">LSB Random</option>
-                <option value="lsb_random_enc">LSB Random + Encryption</option>
-                <option value="dct">DCT</option>
-              </select>
+    <div className="space-y-0">
+      <div className="mb-6 flex items-center justify-between border-b border-primary/20 pb-2">
+        <h2 className="text-xl font-black uppercase italic tracking-tighter text-primary flex items-center gap-2">
+          <Activity className="size-4" />
+          Image_Buffer_Injection
+        </h2>
+        <span className="text-[10px] font-bold opacity-40">STG_PROTOCOL: v4.2.0</span>
+      </div>
+
+      <Tabs 
+        value={action} 
+        onValueChange={(v) => form.setValue('action', v as any)} 
+        className="w-full"
+      >
+        <TabsList className="grid w-full grid-cols-2 mb-8 h-10">
+          <TabsTrigger value="encode" className="text-xs font-black uppercase">Initialize_Encode</TabsTrigger>
+          <TabsTrigger value="decode" className="text-xs font-black uppercase">Initialize_Decode</TabsTrigger>
+        </TabsList>
+
+        <form onSubmit={form.handleSubmit((values) => submitMutation.mutate(values))} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-[10px] uppercase font-black opacity-60">Injection_Logic</Label>
+                <select 
+                  {...form.register('variant')}
+                  className="w-full bg-black border border-primary/20 p-2 text-xs font-black uppercase text-primary outline-none focus:border-primary"
+                >
+                  <option value="lsb">Standard_LSB</option>
+                  <option value="lsb_random">Randomized_Vector</option>
+                  <option value="lsb_random_enc">Encrypted_Random_Vector</option>
+                  <option value="dct">Frequency_Domain_DCT</option>
+                </select>
+              </div>
+
+              {(variant === 'lsb_random' || variant === 'lsb_random_enc') && (
+                <div className="space-y-2 animate-in slide-in-from-top-2 duration-200">
+                  <Label className="text-[10px] uppercase font-black text-accent">Security_Key_Required</Label>
+                  <Input 
+                    placeholder="ENTER_ACCESS_KEY" 
+                    className="bg-black/60 border-accent/40 text-accent font-mono text-xs h-9"
+                    {...form.register('key')} 
+                  />
+                  {form.formState.errors.key && <p className="text-[10px] text-destructive uppercase font-bold">{form.formState.errors.key.message}</p>}
+                </div>
+              )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="image-action">Action</Label>
-              <select id="image-action" className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" {...form.register('action')}>
-                <option value="encode">Encode</option>
-                <option value="decode">Decode</option>
-              </select>
+            <div className="space-y-4">
+              <TabsContent value="encode" className="mt-0 space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-[10px] uppercase font-black opacity-60">Source_Buffer (Cover)</Label>
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    className="text-[10px] font-mono bg-black/40 border-primary/20"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) form.setValue('coverImage', file, { shouldValidate: true })
+                    }}
+                  />
+                  {form.formState.errors.coverImage && <p className="text-[10px] text-destructive uppercase font-bold">{form.formState.errors.coverImage.message}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-[10px] uppercase font-black opacity-60">Payload_Buffer (Secret)</Label>
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    className="text-[10px] font-mono bg-black/40 border-primary/20"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) form.setValue('secretImage', file, { shouldValidate: true })
+                    }}
+                  />
+                  {form.formState.errors.secretImage && <p className="text-[10px] text-destructive uppercase font-bold">{form.formState.errors.secretImage.message}</p>}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="decode" className="mt-0 space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-[10px] uppercase font-black opacity-60">Target_Buffer (Stego)</Label>
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    className="text-[10px] font-mono bg-black/40 border-primary/20"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) form.setValue('stegoImage', file, { shouldValidate: true })
+                    }}
+                  />
+                  {form.formState.errors.stegoImage && <p className="text-[10px] text-destructive uppercase font-bold">{form.formState.errors.stegoImage.message}</p>}
+                </div>
+              </TabsContent>
             </div>
           </div>
 
-          {action === 'encode' ? (
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="cover-image">Cover image</Label>
-                <Input
-                  id="cover-image"
-                  type="file"
-                  accept="image/*"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0]
-                    if (file) form.setValue('coverImage', file, { shouldValidate: true })
-                  }}
-                />
-                {form.formState.errors.coverImage && <p className="text-sm text-destructive">{form.formState.errors.coverImage.message}</p>}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="secret-image">Secret image</Label>
-                <Input
-                  id="secret-image"
-                  type="file"
-                  accept="image/*"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0]
-                    if (file) form.setValue('secretImage', file, { shouldValidate: true })
-                  }}
-                />
-                {form.formState.errors.secretImage && <p className="text-sm text-destructive">{form.formState.errors.secretImage.message}</p>}
+          {submitMutation.isError && (
+            <div className="bg-destructive/10 border-l-2 border-destructive p-3 flex items-start gap-3">
+              <AlertCircle className="size-4 text-destructive shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="text-[10px] font-black text-destructive uppercase tracking-widest">Execution_Halt</p>
+                <p className="text-[9px] text-destructive/80 font-bold uppercase leading-tight">
+                  {((submitMutation.error as any)?.response?.data?.error) || "SYSTEM_TASK_FAILURE: UNKNOWN_EXCEPTION"}
+                </p>
               </div>
             </div>
-          ) : (
-            <div className="space-y-2">
-              <Label htmlFor="stego-image">Stego image</Label>
-              <Input
-                id="stego-image"
-                type="file"
-                accept="image/*"
-                onChange={(event) => {
-                  const file = event.target.files?.[0]
-                  if (file) form.setValue('stegoImage', file, { shouldValidate: true })
-                }}
-              />
-              {form.formState.errors.stegoImage && <p className="text-sm text-destructive">{form.formState.errors.stegoImage.message}</p>}
-            </div>
           )}
 
-          {(variant === 'lsb_random' || variant === 'lsb_random_enc') && (
-            <div className="space-y-2">
-              <Label htmlFor="image-key">Key</Label>
-              <Input id="image-key" placeholder="Encryption/randomization key" {...form.register('key')} />
-              {form.formState.errors.key && <p className="text-sm text-destructive">{form.formState.errors.key.message}</p>}
-            </div>
-          )}
-
-          {submitMutation.isError && <p className="text-sm text-destructive">Failed to submit task. Check API availability and try again.</p>}
-
-          {submitMutation.data?.task_id && (
-            <p className="text-sm text-muted-foreground">
-              Task submitted: <span className="font-mono">{submitMutation.data.task_id}</span>
-            </p>
-          )}
-
-          <Button type="submit" disabled={submitMutation.isPending}>
-            {submitMutation.isPending ? 'Submitting...' : 'Submit task'}
+          <Button 
+            type="submit" 
+            className="w-full bg-primary hover:bg-primary/90 text-black font-black uppercase h-12 shadow-[0_0_15px_rgba(255,102,0,0.3)]" 
+            disabled={submitMutation.isPending}
+          >
+            {submitMutation.isPending ? 'PROCESSING_BUFFER...' : 'Execute_Injection_Task'}
           </Button>
         </form>
-      </CardContent>
-    </Card>
+      </Tabs>
+    </div>
   )
 }

@@ -74,7 +74,7 @@ class LSBRandom(SteganographyBase):
         if key is not None:
             self.key = key
 
-        image = Image.open(image_path)
+        image = Image.open(image_path).convert("RGB")
         image_array = np.array(image)
         flat_pixels = image_array.flatten()
 
@@ -131,7 +131,7 @@ class LSBRandom(SteganographyBase):
             self.key = key
 
         try:
-            image = Image.open(image_path)
+            image = Image.open(image_path).convert("RGB")
         except Exception as e:
             raise ValueError(f"Could not open image file: {str(e)}")
 

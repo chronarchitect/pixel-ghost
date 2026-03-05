@@ -198,8 +198,8 @@ class ImageInImageLSB(SteganographyBase):
         Check if the secret image can fit in the cover image.
         Returns (can_fit, required_bits, available_bits)
         """
-        cover_image = Image.open(cover_image_path)
-        secret_image = Image.open(secret_image_path)
+        cover_image = Image.open(cover_image_path).convert("RGB")
+        secret_image = Image.open(secret_image_path).convert("RGB")
         
         cover_width, cover_height = cover_image.size
         secret_width, secret_height = secret_image.size

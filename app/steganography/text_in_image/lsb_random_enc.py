@@ -104,7 +104,7 @@ class LSBRandomEnc(SteganographyBase):
         # First encrypt the message
         encrypted_message = self.fernet.encrypt(message.encode())
 
-        image = Image.open(image_path)
+        image = Image.open(image_path).convert("RGB")
         image_array = np.array(image)
         flat_pixels = image_array.flatten()
 
@@ -165,7 +165,7 @@ class LSBRandomEnc(SteganographyBase):
             self._setup_keys()
 
         try:
-            image = Image.open(image_path)
+            image = Image.open(image_path).convert("RGB")
         except Exception as e:
             raise ValueError(f"Could not open image file: {str(e)}")
 

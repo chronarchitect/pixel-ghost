@@ -5,14 +5,11 @@ services:
     command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
     environment:
       - ENV=prod
-      - API_KEY=${API_KEY}
     restart: always
 
   pixel-ghost-frontend:
     build:
       context: ./frontend
-    volumes:
-      - ./config.js:/usr/share/nginx/html/config.js
     depends_on:
       - pixel-ghost-api
     restart: always

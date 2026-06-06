@@ -1,6 +1,5 @@
-from fastapi import APIRouter, UploadFile, File, Form, Depends, Security, HTTPException
+from fastapi import APIRouter, UploadFile, File, Form
 from fastapi.responses import JSONResponse, FileResponse
-from fastapi.security import APIKeyHeader
 from steganography.text_in_image.lsb import LSB
 from steganography.image_in_image.dct import DCT
 from steganography.text_in_image.lsb_random import LSBRandom
@@ -16,16 +15,7 @@ import shutil
 import uuid
 import os
 
-API_KEY = os.environ.get("API_KEY")
-api_key_header = APIKeyHeader(name="X-API-KEY", auto_error=True)
-
-async def get_api_key(api_key: str = Security(api_key_header)):
-    if API_KEY and api_key == API_KEY:
-        return api_key
-    raise HTTPException(status_code=403, detail="Could not validate credentials")
-
 router = APIRouter()
-secured_router = APIRouter(dependencies=[Depends(get_api_key)])
 TaskQueueManager.start()
 
 
@@ -34,7 +24,7 @@ async def read_root():
     """Health check endpoint."""
     return {"message": "PixelGhost backend is alive!"}
 
-@secured_router.get("/tasks")
+@router.get("/tasks")
 async def list_all_tasks():
     """
     List all submitted tasks with their IDs.
@@ -45,7 +35,7 @@ async def list_all_tasks():
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)
 
-@secured_router.post("/analyze/bit-plane")
+@router.post("/analyze/bit-plane")
 async def analyze_bit_plane(
     image: UploadFile = File(...),
     bit: int = Form(0)
@@ -65,7 +55,7 @@ async def analyze_bit_plane(
         image.file.close()
 
 # Task status endpoint
-@secured_router.get("/task/status/{task_id}")
+@router.get("/task/status/{task_id}")
 async def get_task_status(task_id: str):
     """
     Get the status of a submitted task.
@@ -98,7 +88,7 @@ async def get_task_status(task_id: str):
 
 
 # Task result endpoint
-@secured_router.get("/task/result/{task_id}")
+@router.get("/task/result/{task_id}")
 async def get_task_result(task_id: str):
     """
     Get the result of a completed task (e.g., download the output file).
@@ -146,7 +136,7 @@ async def get_task_result(task_id: str):
         return JSONResponse(content={"error": str(e)}, status_code=500)
 
 
-@secured_router.post("/text/lsb/encode")
+@router.post("/text/lsb/encode")
 async def encode_text_in_image(
     image: UploadFile = File(...),
     message: str = Form(...),
@@ -184,7 +174,7 @@ async def encode_text_in_image(
         image.file.close()
 
 
-@secured_router.post("/text/lsb/decode")
+@router.post("/text/lsb/decode")
 async def decode_text_from_image(
     image: UploadFile = File(...),
 ):
@@ -211,7 +201,7 @@ async def decode_text_from_image(
         image.file.close()
 
 
-@secured_router.post("/text/lsb_random/encode")
+@router.post("/text/lsb_random/encode")
 async def lsb_random_encode_text_in_image(
     image: UploadFile = File(...),
     message: str = Form(...),
@@ -241,7 +231,7 @@ async def lsb_random_encode_text_in_image(
         image.file.close()
 
 
-@secured_router.post("/text/lsb_random/decode")
+@router.post("/text/lsb_random/decode")
 async def lsb_random_decode_text_from_image(
     image: UploadFile = File(...),
     key: str = Form(...),
@@ -269,7 +259,7 @@ async def lsb_random_decode_text_from_image(
         image.file.close()
 
 
-@secured_router.post("/text/lsb_random_enc/encode")
+@router.post("/text/lsb_random_enc/encode")
 async def lsb_random_enc_encode_text_in_image(
     image: UploadFile = File(...),
     message: str = Form(...),
@@ -300,7 +290,7 @@ async def lsb_random_enc_encode_text_in_image(
         image.file.close()
 
 
-@secured_router.post("/text/lsb_random_enc/decode")
+@router.post("/text/lsb_random_enc/decode")
 async def lsb_random_enc_decode_text_from_image(
     image: UploadFile = File(...),
     key: str = Form(...),
@@ -331,7 +321,7 @@ async def lsb_random_enc_decode_text_from_image(
 # Image-in-Image Steganography Endpoints
 
 
-@secured_router.post("/image/lsb/encode")
+@router.post("/image/lsb/encode")
 async def encode_image_in_image(
     cover_image: UploadFile = File(...),
     secret_image: UploadFile = File(...),
@@ -370,7 +360,7 @@ async def encode_image_in_image(
         secret_image.file.close()
 
 
-@secured_router.post("/image/lsb/decode")
+@router.post("/image/lsb/decode")
 async def decode_image_from_image(
     stego_image: UploadFile = File(...),
 ):
@@ -398,7 +388,7 @@ async def decode_image_from_image(
         stego_image.file.close()
 
 
-@secured_router.post("/image/lsb_random/encode")
+@router.post("/image/lsb_random/encode")
 async def encode_image_in_image_random(
     cover_image: UploadFile = File(...),
     secret_image: UploadFile = File(...),
@@ -438,7 +428,7 @@ async def encode_image_in_image_random(
         secret_image.file.close()
 
 
-@secured_router.post("/image/lsb_random/decode")
+@router.post("/image/lsb_random/decode")
 async def decode_image_from_image_random(
     stego_image: UploadFile = File(...),
     key: str = Form(...),
@@ -466,7 +456,7 @@ async def decode_image_from_image_random(
         stego_image.file.close()
 
 
-@secured_router.post("/image/lsb_random_enc/encode")
+@router.post("/image/lsb_random_enc/encode")
 async def encode_image_in_image_encrypted(
     cover_image: UploadFile = File(...),
     secret_image: UploadFile = File(...),
@@ -506,7 +496,7 @@ async def encode_image_in_image_encrypted(
         secret_image.file.close()
 
 
-@secured_router.post("/image/lsb_random_enc/decode")
+@router.post("/image/lsb_random_enc/decode")
 async def decode_image_from_image_encrypted(
     stego_image: UploadFile = File(...),
     key: str = Form(...),
@@ -534,7 +524,7 @@ async def decode_image_from_image_encrypted(
         stego_image.file.close()
 
 
-@secured_router.post("/image/dct/encode")
+@router.post("/image/dct/encode")
 async def dct_encode_image(
     cover_image: UploadFile = File(...),
     secret_image: UploadFile = File(...),
@@ -571,7 +561,7 @@ async def dct_encode_image(
         secret_image.file.close()
 
 
-@secured_router.post("/image/dct/decode")
+@router.post("/image/dct/decode")
 async def dct_decode_image(
     image: UploadFile = File(...),
 ):
@@ -600,7 +590,7 @@ async def dct_decode_image(
 
 
 # Audio Steganography Routes
-@secured_router.post("/audio/lsb/encode")
+@router.post("/audio/lsb/encode")
 async def encode_text_in_audio(
     audio_file: UploadFile = File(...), message: str = Form(...)
 ):
@@ -635,7 +625,7 @@ async def encode_text_in_audio(
         return JSONResponse(content={"error": str(e)}, status_code=500)
 
 
-@secured_router.post("/audio/lsb/decode")
+@router.post("/audio/lsb/decode")
 async def decode_text_from_audio(audio_file: UploadFile = File(...)):
     """Decode hidden text message from audio file using LSB steganography."""
     audio_path = f"temp_stego_audio_{uuid.uuid4().hex}.wav"
@@ -664,7 +654,7 @@ async def decode_text_from_audio(audio_file: UploadFile = File(...)):
         return JSONResponse(content={"error": str(e)}, status_code=500)
 
 
-@secured_router.post("/audio/capacity")
+@router.post("/audio/capacity")
 async def get_audio_capacity(audio_file: UploadFile = File(...)):
     """Calculate the text capacity of an audio file."""
     audio_path = f"temp_capacity_audio_{uuid.uuid4().hex}.wav"
@@ -698,7 +688,7 @@ async def get_audio_capacity(audio_file: UploadFile = File(...)):
 
 # Homomorphic Encryption Endpoints
 
-@secured_router.post("/homomorphic/encrypt")
+@router.post("/homomorphic/encrypt")
 async def homomorphic_encrypt(
     image: UploadFile = File(...),
     bitlen: int = Form(128)
@@ -717,7 +707,7 @@ async def homomorphic_encrypt(
     finally:
         image.file.close()
 
-@secured_router.post("/homomorphic/decrypt")
+@router.post("/homomorphic/decrypt")
 async def homomorphic_decrypt(
     encrypted_png: UploadFile = File(...),
     metadata_json: UploadFile = File(...),
@@ -745,7 +735,7 @@ async def homomorphic_decrypt(
         encrypted_png.file.close()
         metadata_json.file.close()
 
-@secured_router.post("/homomorphic/brightness")
+@router.post("/homomorphic/brightness")
 async def homomorphic_brightness(
     encrypted_png: UploadFile = File(...),
     metadata_json: UploadFile = File(...),
@@ -772,7 +762,7 @@ async def homomorphic_brightness(
         encrypted_png.file.close()
         metadata_json.file.close()
 
-@secured_router.get("/download")
+@router.get("/download")
 async def download_file(path: str):
     """Download a file by its absolute path (restricted to /tmp for safety)."""
     if not path.startswith("/tmp/"):
@@ -780,5 +770,3 @@ async def download_file(path: str):
     if not os.path.exists(path):
         return JSONResponse(content={"error": "File not found"}, status_code=404)
     return FileResponse(path=path, filename=path.split("/")[-1])
-
-router.include_router(secured_router)

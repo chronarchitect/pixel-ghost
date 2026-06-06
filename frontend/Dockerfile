@@ -4,8 +4,6 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install --silent
 COPY . .
-ARG VITE_API_KEY
-ENV VITE_API_KEY=$VITE_API_KEY
 RUN npm run build
 
 # Stage 2: Serve

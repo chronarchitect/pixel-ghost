@@ -11,8 +11,8 @@ services:
   pixel-ghost-frontend:
     build:
       context: ./frontend
-      args:
-        VITE_API_KEY: ${API_KEY}
+    volumes:
+      - ./config.js:/usr/share/nginx/html/config.js
     depends_on:
       - pixel-ghost-api
     restart: always

@@ -99,6 +99,7 @@ async def get_task_result(task_id: str):
 @router.post("/text/lsb/encode")
 async def encode_text_in_image(image: UploadFile = File(...), message: str = Form(...)):
     """Encode a hidden text message into an image using LSB steganography."""
+    logger.info(f"Received LSB encode request. Image: {image.filename}, Message length: {len(message)}")
     steg = LSB()
     input_path = f"/tmp/input_{uuid.uuid4()}.png"
     output_path = f"/tmp/output_{uuid.uuid4()}.png"

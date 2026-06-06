@@ -1,9 +1,13 @@
 import uuid
 import queue
 import threading
-import traceback
+import logging
 from concurrent.futures import ThreadPoolExecutor
 from collections import namedtuple
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 Task = namedtuple('Task', ['id', 'fn', 'args', 'kwargs', 'priority'])
 
@@ -32,6 +36,7 @@ class TaskQueueManager:
     @classmethod
     def _run_task(cls, task):
         cls.task_status[task.id] = "processing"
+        logger.info(f"Task {task.id} started.")
         return task.fn(*task.args, **task.kwargs)
 
     @classmethod
@@ -40,8 +45,9 @@ class TaskQueueManager:
             result = future.result()
             cls.task_results[task_id] = result
             cls.task_status[task_id] = "completed"
+            logger.info(f"Task {task_id} completed successfully.")
         except Exception as e:
-            traceback.print_exc() # Log detailed error to stdout
+            logger.exception(f"Task {task_id} failed with error: {e}")
             cls.task_status[task_id] = "failed"
             cls.task_results[task_id] = str(e)
 
@@ -55,5 +61,4 @@ class TaskQueueManager:
 
     @classmethod
     def start(cls):
-        # Executor is already started
         pass

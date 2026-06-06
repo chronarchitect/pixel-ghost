@@ -1,19 +1,28 @@
 import os
 import uuid
+import logging
 from PIL import Image
 from . import Paillier
 from . import ImageCryptography
+
+logger = logging.getLogger(__name__)
 
 def encrypt_task(input_path, bitlen=128):
     """
     Task to encrypt an image.
     Returns keys and paths to encrypted PNG and JSON metadata.
     """
+    logger.info(f"Starting encryption for {input_path} with bitlen {bitlen}")
     public_key, private_key = Paillier.generate_keys(bitlen)
+    logger.info("Keys generated.")
+    
     plainimg = Image.open(input_path).convert("RGB")
+    logger.info(f"Image opened: {plainimg.size}")
     
     # Encrypt
+    logger.info("Starting ImgEncrypt...")
     cipherimg = ImageCryptography.ImgEncrypt(public_key, plainimg, parallel=True)
+    logger.info("ImgEncrypt completed.")
     
     # Save
     task_id = str(uuid.uuid4())
@@ -21,7 +30,9 @@ def encrypt_task(input_path, bitlen=128):
     output_dir = "/tmp/pixel-ghost-homomorphic"
     os.makedirs(output_dir, exist_ok=True)
     
+    logger.info(f"Saving encrypted image to {output_dir}/{filename}")
     ImageCryptography.saveVisualEncryptedImg(cipherimg, filename, directory=output_dir)
+    logger.info("Encrypted image saved.")
     
     return {
         "public_key": {"n": public_key.n},

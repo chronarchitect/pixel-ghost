@@ -1,0 +1,33 @@
+services:
+  pixel-ghost-api:
+    build:
+      context: .
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+    environment:
+      - ENV=prod
+    restart: always
+    # No ports exposed directly, only accessible via the internal network
+
+  pixel-ghost-frontend:
+    build:
+      context: ./frontend
+    depends_on:
+      - pixel-ghost-api
+    restart: always
+
+  caddy:
+    image: caddy:latest
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - pixel-ghost-frontend
+
+volumes:
+  caddy_data:
+  caddy_config:

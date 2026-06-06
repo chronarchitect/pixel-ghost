@@ -1,6 +1,7 @@
 import uuid
 import queue
 import threading
+import traceback
 from concurrent.futures import ThreadPoolExecutor
 from collections import namedtuple
 
@@ -40,7 +41,8 @@ class TaskQueueManager:
             cls.task_results[task_id] = result
             cls.task_status[task_id] = "completed"
         except Exception as e:
-            cls.task_status[task.id] = "failed"
+            traceback.print_exc() # Log detailed error to stdout
+            cls.task_status[task_id] = "failed"
             cls.task_results[task_id] = str(e)
 
     @classmethod

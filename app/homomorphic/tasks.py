@@ -20,8 +20,8 @@ def encrypt_task(input_path, bitlen=128):
     logger.info(f"Image opened: {plainimg.size}")
     
     # Encrypt
-    logger.info("Starting ImgEncrypt...")
-    cipherimg = ImageCryptography.ImgEncrypt(public_key, plainimg, parallel=True)
+    logger.info("Starting ImgEncrypt (sequential)...")
+    cipherimg = ImageCryptography.ImgEncrypt(public_key, plainimg, parallel=False)
     logger.info("ImgEncrypt completed.")
     
     # Save

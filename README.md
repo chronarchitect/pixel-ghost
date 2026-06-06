@@ -5,7 +5,7 @@
 ## 🚀 Features
 
 - 🔍 **Modular Steganography Engine** (LSB, DCT, DFT, DWT coming soon)
-- 🔐 Privacy-first: future support for homomorphic transformations
+- 🔐 **Privacy-first**: Homomorphic transformations (Paillier cryptosystem) for secure image editing
 - 🧱 FastAPI backend with CI/CD pipeline and Docker support
 - ⚛️ **Modern React Frontend** (Vite, TypeScript, Tailwind, Shadcn/UI, TanStack Query)
 - 🔗 API-first design

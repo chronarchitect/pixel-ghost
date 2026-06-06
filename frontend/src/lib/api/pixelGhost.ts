@@ -72,4 +72,12 @@ export const pixelGhostApi = {
   },
 
   analyzeBitPlane: (image: File, bit: number) => postTask('/analyze/bit-plane', { image, bit: bit.toString() }),
+
+  homomorphicEncrypt: (image: File, bitlen: number) =>
+    postTask('/homomorphic/encrypt', { image, bitlen: bitlen.toString() }),
+  homomorphicDecrypt: (encrypted_png: File, metadata_json: File, n: string, lam: string, mu: string) =>
+    postTask('/homomorphic/decrypt', { encrypted_png, metadata_json, n, lam, mu }),
+  homomorphicBrightness: (encrypted_png: File, metadata_json: File, n: string, factor: number) =>
+    postTask('/homomorphic/brightness', { encrypted_png, metadata_json, n, factor: factor.toString() }),
+  downloadUrl: (path: string) => `${apiClient.defaults.baseURL}/download?path=${encodeURIComponent(path)}`,
 }

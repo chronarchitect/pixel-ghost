@@ -4,4 +4,4 @@
 docker-compose -f compose.prod.yaml down
 
 # Start the services
-DOMAIN_NAME='yourdomain.com' docker-compose -f compose.prod.yaml up -d --build
+DOMAIN_NAME='pixelghost.aniketdas.com' docker-compose -f compose.prod.yaml up -d --build

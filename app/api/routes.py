@@ -8,7 +8,6 @@ from steganography.image_in_image.lsb import ImageInImageLSB
 from steganography.image_in_image.lsb_random import ImageInImageLSBRandom
 from steganography.image_in_image.lsb_random_enc import ImageInImageLSBRandomEnc
 from steganography.text_in_audio.lsb import AudioLSB
-from homomorphic.tasks import encrypt_task, decrypt_task, brightness_task
 from core.analysis import extract_bit_plane
 from tasks import TaskQueueManager
 import shutil
@@ -415,59 +414,6 @@ async def get_audio_capacity(audio_file: UploadFile = File(...)):
         logger.exception("Error getting audio capacity")
         if os.path.exists(audio_path): os.remove(audio_path)
         return JSONResponse(content={"error": str(e)}, status_code=500)
-
-@router.post("/homomorphic/encrypt")
-async def homomorphic_encrypt(image: UploadFile = File(...), bitlen: int = Form(128)):
-    """Encrypt an image using Paillier homomorphic encryption."""
-    input_path = f"/tmp/homo_input_{uuid.uuid4()}.png"
-    try:
-        with open(input_path, "wb") as buffer:
-            shutil.copyfileobj(image.file, buffer)
-        task_id = TaskQueueManager.submit_task(encrypt_task, input_path, bitlen=bitlen)
-        return JSONResponse(content={"task_id": task_id}, status_code=202)
-    except Exception as e:
-        logger.exception("Error homomorphic encrypting")
-        return JSONResponse(content={"error": str(e)}, status_code=500)
-    finally:
-        image.file.close()
-
-@router.post("/homomorphic/decrypt")
-async def homomorphic_decrypt(encrypted_png: UploadFile = File(...), metadata_json: UploadFile = File(...), n: str = Form(...), lam: str = Form(...), mu: str = Form(...)):
-    """Decrypt a homomorphically encrypted image."""
-    png_path = f"/tmp/homo_enc_{uuid.uuid4()}.png"
-    json_path = f"/tmp/homo_meta_{uuid.uuid4()}.json"
-    try:
-        with open(png_path, "wb") as buffer:
-            shutil.copyfileobj(encrypted_png.file, buffer)
-        with open(json_path, "wb") as buffer:
-            shutil.copyfileobj(metadata_json.file, buffer)
-        task_id = TaskQueueManager.submit_task(decrypt_task, png_path, json_path, int(n), int(lam), int(mu))
-        return JSONResponse(content={"task_id": task_id}, status_code=202)
-    except Exception as e:
-        logger.exception("Error homomorphic decrypting")
-        return JSONResponse(content={"error": str(e)}, status_code=500)
-    finally:
-        encrypted_png.file.close()
-        metadata_json.file.close()
-
-@router.post("/homomorphic/brightness")
-async def homomorphic_brightness(encrypted_png: UploadFile = File(...), metadata_json: UploadFile = File(...), n: str = Form(...), factor: int = Form(...)):
-    """Adjust brightness of an encrypted image homomorphically."""
-    png_path = f"/tmp/homo_enc_{uuid.uuid4()}.png"
-    json_path = f"/tmp/homo_meta_{uuid.uuid4()}.json"
-    try:
-        with open(png_path, "wb") as buffer:
-            shutil.copyfileobj(encrypted_png.file, buffer)
-        with open(json_path, "wb") as buffer:
-            shutil.copyfileobj(metadata_json.file, buffer)
-        task_id = TaskQueueManager.submit_task(brightness_task, png_path, json_path, int(n), factor)
-        return JSONResponse(content={"task_id": task_id}, status_code=202)
-    except Exception as e:
-        logger.exception("Error homomorphic brightness adjustment")
-        return JSONResponse(content={"error": str(e)}, status_code=500)
-    finally:
-        encrypted_png.file.close()
-        metadata_json.file.close()
 
 @router.get("/download")
 async def download_file(path: str):

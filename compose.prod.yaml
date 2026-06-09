@@ -10,23 +10,8 @@ services:
   pixel-ghost-frontend:
     build:
       context: ./frontend
+    ports:
+      - "${APP_PORT:-8080}:80"
     depends_on:
       - pixel-ghost-api
     restart: always
-
-  caddy:
-    image: caddy:latest
-    restart: always
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      - pixel-ghost-frontend
-
-volumes:
-  caddy_data:
-  caddy_config:
